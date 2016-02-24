@@ -36,15 +36,46 @@ from threading import enumerate as threading_enumerate
 from Queue import Empty
 from datetime import timedelta, datetime
 
-# Represents a job submitted to the batch pool.
-BatchJobTuple = namedtuple('BatchJobTuple', ['id', 'func', 'args', 'kwargs',
-                                             'deps', 'startmsg', 'endmsg'])
 log = logging.getLogger(__name__)
 
 
-class BatchJob(BatchJobTuple):
-    def __init__(self, *args, **kwargs):
-        super(BatchJob, self).__init__(*args, **kwargs)
+class BatchJob(object):
+    """Represents a job submitted to the batch pool.
+
+    Attributes:
+        id (int): Unique job ID.
+        func (function): Function handle to invoke.
+        args (list): List of args to pass as `*args`.
+        kwargs (dict): Dict of args to pass as `**kwargs`.
+        deps (list): List of integers, representing dependencies on other jobs.
+        startmsg (str): Optional log message to print on job start.
+        endmsg (str): Optional log message to print after job completion.
+        done (bool): Flag if the job has completed.
+        submitted (bool): Flag if the job has been submitted to a worker.
+    """
+
+    def __init__(self, id, func, args, kwargs, deps, startmsg, endmsg):
+        """
+        Args:
+            id (int): Unique job ID.
+            func (function): Function handle to invoke.
+            args (list): List of args to pass as `*args`.
+            kwargs (dict): Dict of args to pass as `**kwargs`.
+            deps (list): List of integers, representing dependencies.
+            startmsg (str): Optional log message to print on job start.
+            endmsg (str): Optional log message to print after job completion.
+
+        Returns:
+            BatchJob
+        """
+        self.id = id
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.deps = deps
+        self.startmsg = startmsg
+        self.endmsg = endmsg
+
         self.done = False
         self.submitted = False
 
@@ -234,7 +265,7 @@ def handle_sigint_silent(signal, frame):
     # Since we want to terminate worker threads with prejudice,
     # we use os._exit, which directly terminates the process.
     # otherwise the worker try/catch will also catch the SystemExit
-    os.exit_(-1)
+    os._exit(-1)
 
 
 def handle_sigterm(signal, frame):
