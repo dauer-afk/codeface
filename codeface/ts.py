@@ -29,15 +29,25 @@ from .dbmanager import DBManager, tstamp_to_sql
 
 
 def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
-    """Analyses something....
+    """Retrieves VCS object from file and creates a 'TimeSeries' from it.
+
+    Unpickles VCS object stored in dbfilename and loads it to vcs. Then it uses
+    the createSeries function to compute a 'TimeSeries' object from it.
+
+    Notes:
+        Argument destdir is never used and has no effect.
+        if revrange is dead code, as sfx is never used afterwards. Except if
+        it is called to provoke side-effects, in which case it is bad style.
+        Also: the function name is Java-Style.
 
     Args:
-        dbfilename (str): Database file name.
-        destdir (str): Output directory name.
-        revrange:
-        rc_start:
+        dbfilename (str): Binary file, containing a pickled VCS instance
+        destdir (str): Output directory name, currently unused
+        revrange (tuple): Tuple of commit IDs or None.
+        rc_start (str): Commit ID within revrange or None.
 
     Returns:
+        res (TimeSeries): TimeSeries instance containing the results.
 
     """
     pkl_file = open(dbfilename, 'rb')
@@ -54,16 +64,14 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
 
 
 def writeReleases(dbm, tstamps, conf):
-    """
+    """Inserts all releases for the time stamps into the database.
 
     Args:
-        dbm:
-        tstamps:
-        conf:
-
-    Returns:
-
+        dbm (DBManager): Database manager of the database to insert into.
+        tstamps (list): Time stamps to be inserted.
+        conf (Configuration): Codeface configuration file.
     """
+
     pid = dbm.getProjectID(conf["project"], conf["tagging"])
 
     for tstamp in tstamps:
@@ -74,15 +82,23 @@ def writeReleases(dbm, tstamps, conf):
 
 
 def dispatch_ts_analysis(resdir, conf):
-    """
+    """Setup and dispatch of time series analysis.
+
+    Extracts the knowledge neccessary for the time series analysis from the
+    conf and dispatches the job. The dispatch happens in two stages:
+    Stage 1: Create the individual time series (and record all time
+    stamps for the boundaries).
+    Stage 2: Insert time stamps for all releases considered into the database
+
+    Notes: During stage 1, the time stamp information in the database is still
+    incomplete, as it is written out _after_ this stage. So we must not rely on
+    the content of tstamps before that is done.
 
     Args:
-        resdir:
-        conf:
-
-    Returns:
-
+        resdir (str): Results directory.
+        conf (Configuration): Codeface configuration.
     """
+
     dbpath = resdir
     destdir = os.path.join(dbpath, "ts")
     dbm = DBManager(conf)
@@ -90,11 +106,6 @@ def dispatch_ts_analysis(resdir, conf):
     if not os.path.exists(destdir):
         os.mkdir(destdir)
 
-    # Stage 1: Create the individual time series (and record all time
-    # stamps for the boundaries)
-    # NOTE: The time stamp information in the database is still incomplete
-    # in this stage, it is written out _after_ this stage. So we must
-    # not rely on the content of tstamps before that is done.
     tstamps = []
     for i in range(1, len(conf["revisions"])):
         dbfilename = os.path.join(dbpath,
@@ -102,6 +113,7 @@ def dispatch_ts_analysis(resdir, conf):
                                                    conf["revisions"][i]),
                                   "vcs_analysis.db")
 
+        # TODO Should this be a list or a tuple?
         ts = doAnalysis(dbfilename, destdir,
                         revrange=[conf["revisions"][i - 1],
                                   conf["revisions"][i]],
@@ -116,7 +128,6 @@ def dispatch_ts_analysis(resdir, conf):
 
         tstamps.append(("release", conf["revisions"][i], ts.get_end()))
 
-    # Stage 2: Insert time stamps for all releases considered into the database
     writeReleases(dbm, tstamps, conf)
 
 # TODO Remove this, it's deprecated!
