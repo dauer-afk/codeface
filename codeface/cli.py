@@ -31,10 +31,14 @@ from codeface.project import project_analyse, mailinglist_analyse
 
 
 def get_parser():
-    """Create parser with required command line arguments.
+    """Create parser with for command line arguments.
+
+    Create a new parser derived from 'ArgumentParser', furnished with all
+    command line switches and arguments. The parser is split into the main
+    parser and the sub-parsers for VCS, mailing list and bugtracker analysis.
 
     Returns:
-        ArgumentParser: Instance for the command line interface.
+        ArgumentParser (ArgumentParser): Instance for the command line interface
     """
     parser = argparse.ArgumentParser(
         prog='codeface',
@@ -169,7 +173,10 @@ def get_parser():
 
 
 def cmd_run(args):
-    """Dispatch the ``run`` command.
+    """Dispatch the run command.
+
+    Unpacks the configuration file paths and creates the environment necessary
+    to perform an analysis of an open source project. Then starts the analysis.
 
     Args:
         args: Command line arguments
@@ -177,6 +184,7 @@ def cmd_run(args):
     Returns:
         int: 0 on success, != 0 otherwise.
     """
+
     # First make all the args absolute, variant a
     resdir, gitdir = map(os.path.abspath, (args.resdir, args.gitdir))
     codeface_conf, project_conf = map(os.path.abspath,
@@ -191,7 +199,10 @@ def cmd_run(args):
 
 
 def cmd_ml(args):
-    """Dispatch the ``ml`` command.
+    """Dispatch the ml command.
+
+    Unpacks the configuration file path and creates the environment necessary
+    to perform a mailing list analysis. Then starts the mailing list analysis.
 
     Args:
         args: Command line arguments.
@@ -199,6 +210,7 @@ def cmd_ml(args):
     Returns:
         int: 0 on success, != 0 otherwise.
     """
+
     # First make all the args absolute
     resdir, mldir = map(os.path.abspath, (args.resdir, args.mldir))
     codeface_conf, project_conf = map(os.path.abspath,
