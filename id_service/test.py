@@ -16,6 +16,8 @@
 # Copyright 2013 by Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
+# TODO This module is not even integrated with the test framework...
+
 # Short python example to test and illustrate the ID service
 import httplib
 import urllib
@@ -36,7 +38,7 @@ def query_user_id(conn, projectID, name, email):
     res = conn.getresponse()
     print "Response:", res.status, res.reason
 
-    # TODO: We should handle errors by throwing an exception instead
+    # TODO We should handle errors by throwing an exception instead
     # of silently ignoring them
     id = json.loads(res.read())["id"]
     return(id)

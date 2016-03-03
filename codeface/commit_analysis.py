@@ -21,7 +21,7 @@
 # Copyright 2010, 2011, 2012 by Wolfgang Mauerer <wm@linux-kernel.net>
 # All Rights Reserved.
 """Analyses the commits."""
-# TODO: Add further measures for the commit size
+# TODO Add further measures for the commit size
 
 from logging import getLogger
 from codeface.commit import Commit
@@ -63,6 +63,7 @@ def _mean(nums):
         return 0.0
 
 
+# TODO This code is dead. Used to guarantee strict monotonic order.
 def _compute_next_timestamp(time, last_time):
     """Generate strictly monotonic increasing timestamp.
 
@@ -149,7 +150,7 @@ def createSeries(vcs, subsys="__main__", revrange=None, rc_start=None):
         [{'commit': Commit ID, 'value': {Diff type: Lines affected, ...}, ...]
     """
 
-    # TODO: Check if subsys exists; if not, bark.
+    # TODO Check if subsys exists; if not, bark.
 
     result = TimeSeries()
     if revrange is None:
@@ -256,6 +257,7 @@ def getSeriesDuration(series):
         series.series[0]["commit"].cdate)
 
 
+# TODO This code is dead.
 def writeToFile(res, name, uniqueTS=True):
     """Write a result list to a file.
 

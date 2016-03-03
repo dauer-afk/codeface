@@ -25,7 +25,8 @@ class LinkType(object):
     Attributes:
 
     """
-    # TODO This is NOT a proper Enum type class as it can't be instantiated!
+    # TODO This is NOT a proper Enum type class as it can't be instantiated
+    # The "constants" are also permutable this way, which isn't desired
     tag = "tag"
     proximity = "proximity"
     committer2author = "committer2author"

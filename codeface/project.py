@@ -16,9 +16,6 @@
 
 """Module containing analysis methods.
 
-Attributes:
-    log:
-
 Methods:
     loginfo: Pickleable function for multiprocesssing
     project_setup: Setup analysis form configuration file
@@ -50,20 +47,24 @@ def loginfo(msg):
 
 
 def project_setup(conf, recreate):
-    """This method updates the project in the database with the release
-    information given in the configuration.
+    """Updates the project in the database with the release information given in
+     the configuration.
+
     Returns the project ID, the database manager and the list of range ids
     for the ranges between the releases specified in the configuration.
     Set up project in database and retrieve ranges to analyse
 
     Args:
-        conf:
-        recreate:
+        conf (Configuration): Project specific configuration instance.
+        recreate (bool): If true, remove the project from the database first.
 
     Returns:
-        project_id:
-        dbm:
-        all_range_ids:
+        project_id (int): ID of the project in the database.
+        dbm (DBManager): Instance of DBManager configured for this project.
+        all_range_ids (list): List of ints, containing the ID of all ranges in
+            the database which have been constructed from the revision labels
+            found in the configuration.
+
     """
 
     log.info("=> Setting up project '%s'", conf["project"])
@@ -74,13 +75,12 @@ def project_setup(conf, recreate):
                                                 recreate_project=recreate)
     project_id = dbm.getProjectID(conf["project"], conf["tagging"])
     revs = conf["revisions"]
-    # TODO make readable
-    all_range_ids = [
-        dbm.getReleaseRangeID(project_id, (
-            dbm.getRevisionID(project_id, start),
-            dbm.getRevisionID(project_id, end)))
-        for (start, end) in zip(revs[0:], revs[1:])
-        ]
+
+    rev_ids = [dbm.getRevisionID(project_id, rev) for rev in revs]
+    # Create pairs of all subsequent revision IDs and fetch the corresponding
+    # range IDs from the database.
+    all_range_ids = [dbm.getReleaseRangeID(project_id, pair) for pair in
+                     zip(rev_ids[0:], rev_ids[1:])]
     return project_id, dbm, all_range_ids
 
 
@@ -97,26 +97,68 @@ def project_setup(conf, recreate):
 def project_analyse(resdir, gitdir, codeface_conf, project_conf,
                     no_report, loglevel, logfile, recreate, profile_r,
                     n_jobs, tagging_type, reuse_db):
-    """Analyses a git project.
+    """Master function for analyses of git projects.
+
+    Notes:
+        Preparation:
+            Constructs the actual configuration file from the provisioned global
+            and project configuration files, and settings overridden by command
+            line parameters.
+
+            Verifies that software dependencies for the analysis type requested are
+            all available.
+
+            Writes actual configuration file out to disk.
+
+        Stage 1 (per range):
+            Performs a commit analysis on every revision range deduced from the
+            configuration. The actual method of analysis varies. Primary goal
+            for this stage is to provide metrics for developer interaction.
+
+            The outputs are partially written to disk and partially to the
+            database.
+
+            See cluster.py `emitStatisticalData` to see what data is written to
+            which location.
+
+        Stage 2 (per range):
+            Performs a cluster analysis on the data emitted by Stage 1.
+
+        Stage 3 (per range, optional):
+            Generates visualizations of clusters with Graphviz and LuaLatex.
+
+        Global stage 1:
+            Analysis of development activity on a per-range timescale.
+
+            Provides metrics on code changes for each commit by various diff
+            types. This data is then discarded. WTF?!!
+
+            Writes timestamps of releases and RCs to the database.
+
+        Global stage 2:
+            TODO ???
+
+        Global stage 3:
+            TODO ???
 
     Args:
-        resdir: Directory to store results in.
-        mldir: Storage directory for source mailing list.
-        codeface_conf: Codeface configuration file, contains database access,
+        resdir (str): Directory to store results in.
+        mldir (str): Storage directory for source mailing list.
+        codeface_conf (str): Codeface configuration file, contains database access,
             PersonID settings, Java BugExtractor settings and complexity
             analysis settings.
-        project_conf: Project configuration file, contains project name, repo
+        project_conf (str): Project configuration file, contains project name, repo
             type, mailing list storage, mailing lists, descriptions, revisions,
             rcs and tagging.
-        no_report: Enable/disable report generation.
-        loglevel:
-        logfile:
-        recreate: Enable/disable recreation of
+        no_report (bool): Enable/disable report generation.
+        loglevel (str):
+        logfile (str):
+        recreate (bool): Enable/disable recreation of
         profile_r: Specify R profile.
-        n_jobs: Number of parallel processes.
-        tagging_type: Specify tagging type, valid ones are:
+        n_jobs (int): Number of parallel processes.
+        tagging_type (str): Specify tagging type, valid ones are:
             tag, proximity, committer2author, file, feature, feature_file
-        reuse_db: Toggle reuse of existing database.
+        reuse_db (bool): Toggle reuse of existing database.
 
     """
 
@@ -151,7 +193,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         conf["rcs"] = rcs[-num_window - 1:]
         range_by_date = True
 
-    # TODO: Sanity checks (ensure that git repo dir exists)
+    # TODO Sanity checks (ensure that git repo dir exists)
     if tagging == LinkType.proximity:
         check4ctags()
     elif tagging in (LinkType.feature, LinkType.feature_file):
@@ -187,6 +229,7 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
         cmd.extend(("--loglevel", loglevel))
         if logfile:
             cmd.extend(("--logfile", "{}.R.r{}".format(logfile, i)))
+        # TODO Why is codeface_conf passed? It has been merged into project_conf
         cmd.extend(("-c", codeface_conf))
         cmd.extend(("-p", project_conf))
         cmd.append(range_resdir)
@@ -215,12 +258,15 @@ def project_analyse(resdir, gitdir, codeface_conf, project_conf,
     pool.join()
 
     # Global stage 1: Time series generation
+    # TODO This stage has no functionality left apart from writing release
+    # timestamps to the database...
     log.info("=> Preparing time series data")
     dispatch_ts_analysis(project_resdir, conf)
 
     # Global stage 2: Complexity analysis
     # NOTE: We rely on proper timestamps, so we can only run after time series
     # generation
+    # TODO That previous note is completely outdated and miss leading.
     log.info("=> Performing complexity analysis")
     for i, range_id in enumerate(all_range_ids):
         log.info("  -> Analysing range '%s'", range_id)

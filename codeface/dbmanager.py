@@ -145,7 +145,7 @@ class DBManager(object):
         self.doExec("SELECT id FROM release_range \
                     WHERE projectId=%s", (project_id,))
         if self.cur.rowcount == 0:
-            # TODO F***ing generic exception!
+            # TODO Generic exception!
             raise Exception("No release ranges found for project {}!"
                             .format(project_id))
         return [range_entry[0] for range_entry in self.doFetchAll()]
@@ -159,7 +159,7 @@ class DBManager(object):
             self.doExec("SELECT id FROM cluster WHERE clusterNumber=-1 \
                         AND projectId=%s", (pid,))
         if self.cur.rowcount == 0:
-            # TODO F***ing generic exception!
+            # TODO Generic exception!
             raise Exception("Cluster from project {} not found!".format(pid))
         return self.doFetchAll()[0][0]
 

@@ -18,7 +18,7 @@
 
 """Create time series from a sequence of VCS objects"""
 
-# TODO de-confuse the mess with the __main__
+# TODO Tear down the deprecated subsys concept, start at "__main__" placeholder
 
 import argparse
 import os.path
@@ -43,8 +43,8 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
     Args:
         dbfilename (str): Binary file, containing a pickled VCS instance
         destdir (str): Output directory name, currently unused
-        revrange (tuple): Tuple of commit IDs or None.
-        rc_start (str): Commit ID within revrange or None.
+        revrange (Optional[list]): 2-tuple of commit IDs or None.
+        rc_start (Optional[str]): Commit ID within revrange or None.
 
     Returns:
         res (TimeSeries): TimeSeries instance containing the results.
@@ -84,15 +84,16 @@ def writeReleases(dbm, tstamps, conf):
 def dispatch_ts_analysis(resdir, conf):
     """Setup and dispatch of time series analysis.
 
-    Extracts the knowledge neccessary for the time series analysis from the
+    Extracts the knowledge necessary for the time series analysis from the
     conf and dispatches the job. The dispatch happens in two stages:
     Stage 1: Create the individual time series (and record all time
     stamps for the boundaries).
-    Stage 2: Insert time stamps for all releases considered into the database
+    Stage 2: Insert time stamps for all releases considered into the database.
 
-    Notes: During stage 1, the time stamp information in the database is still
-    incomplete, as it is written out _after_ this stage. So we must not rely on
-    the content of tstamps before that is done.
+    Notes:
+        During stage 1, the time stamp information in the database is still
+        incomplete, as it is written out _after_ this stage. So we must not rely
+        on the content of tstamps before that is done.
 
     Args:
         resdir (str): Results directory.
@@ -107,13 +108,14 @@ def dispatch_ts_analysis(resdir, conf):
         os.mkdir(destdir)
 
     tstamps = []
+    # TODO We have a ready made list of rev ranges, why isn't this used?
     for i in range(1, len(conf["revisions"])):
         dbfilename = os.path.join(dbpath,
                                   "{0}-{1}".format(conf["revisions"][i - 1],
                                                    conf["revisions"][i]),
                                   "vcs_analysis.db")
 
-        # TODO Should this be a list or a tuple?
+        # TODO This is a ridiculous amount of work which is entirely discarded.
         ts = doAnalysis(dbfilename, destdir,
                         revrange=[conf["revisions"][i - 1],
                                   conf["revisions"][i]],

@@ -448,7 +448,7 @@ def check4ctags():
         raise Exception("ctags-exuberant not found")
 
     if not res.startswith(prog_version):
-        # TODO: change this to use standard mechanism for error logging
+        # TODO change this to use standard mechanism for error logging
         log.error("Ctags version '%s' not found", prog_version)
         raise Exception("Incompatible ctags-exuberant version")
 
