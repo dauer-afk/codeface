@@ -43,8 +43,9 @@ p <- filter.installed.packages(c("statnet", "ggplot2", "tm", "optparse",
                                  "igraph", "zoo", "xts", "lubridate", "xtable",
                                  "reshape", "wordnet", "stringr", "yaml", "plyr",
                                  "scales", "gridExtra", "scales", "RMySQL",
-                                 "RCurl", "mgcv", "shiny", "dtw", "httpuv", "devtools",
-                                 "corrgram", "logging", "png", "rjson", "lsa", "RJSONIO"))
+                                 "RCurl", "mgcv", "shiny", "dtw", "httpuv",
+                                 "devtools", "corrgram", "logging", "png",
+                                 "rjson", "lsa", "RJSONIO", "svglite"))
 if(length(p) > 0) {
     install.packages(p ,dependencies=T)
 }
