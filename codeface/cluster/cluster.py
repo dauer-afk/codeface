@@ -27,8 +27,8 @@ import os
 import os.path
 import pickle
 import random
-import codeBlock
-import codeLine
+import codeface.cluster.codeBlock as codeBlock
+import codeface.cluster.codeLine as codeLine
 
 from logging import getLogger
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -47,6 +47,21 @@ log = getLogger(__name__)
 
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
              range_by_date, rcranges=None):
+    """
+
+    Args:
+        filename:
+        git_repo:
+        revrange:
+        subsys_descr:
+        link_type:
+        range_by_date:
+        rcranges:
+
+    Returns:
+
+    """
+
     # ------------------
     # configuration
     # ------------------
@@ -75,6 +90,14 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type,
 
 
 def readDB(filename):
+    """
+
+    Args:
+        filename:
+
+    Returns:
+
+    """
     #    k = shelve.open(filename)
     #    git = k["git"]
     #    k.close()
@@ -144,16 +167,7 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
     """Generates the collaboration data from a file snapshot at a particular
     point in time
 
-    Args:
-        file_commit:
-        cmtList:
-        id_mgr:
-        link_type:
-        startDate:
-        random: """
-
-    '''
-    Detailed description: the fileSnapShot is a representation of how a file
+        Detailed description: the fileSnapShot is a representation of how a file
     looked at the time of a particular commit. The fileSnapshot is a
     dictionary with key = a particular commit hash and the value is the how
     the file looked at the time of that commit.How the file looked is
@@ -161,7 +175,14 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
     value is a commit hash referencing the commit that contributed that
     particular line. The commit hashes are then used to reference the people
     involved.
-    '''
+
+    Args:
+        file_commit:
+        cmtList:
+        id_mgr:
+        link_type:
+        startDate:
+        random: """
 
     # ------------------------
     # variable declarations
@@ -273,6 +294,15 @@ def compute_snapshot_collaboration_features(
                 feature_cluster = feature_clusters[feature]
 
                 def exists(f, l):
+                    """
+
+                    Args:
+                        f:
+                        l:
+
+                    Returns:
+
+                    """
                     for i in l:
                         if f(i):
                             return True
@@ -593,6 +623,15 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
 
 
 def computeBlksSize(blks1, blks2):
+    """
+
+    Args:
+        blks1:
+        blks2:
+
+    Returns:
+
+    """
     # compute the total size of two sets of codeBlock objects
     blks_total = blks1 + blks2
     size_total = 0
@@ -602,6 +641,15 @@ def computeBlksSize(blks1, blks2):
 
 
 def compute_block_weight(blocks1, blocks2):
+    """
+
+    Args:
+        blocks1:
+        blocks2:
+
+    Returns:
+
+    """
     commit_ids1 = [blk.cmtHash for blk in blocks1]
     commit_ids2 = [blk.cmtHash for blk in blocks2]
     size = computeBlksSize(blocks1, blocks2)
@@ -1284,6 +1332,15 @@ def writeDependsToDB(
     projectID = dbm.getProjectID(conf["project"], conf["tagging"])
     if get_entity_source_code is None:
         def get_source(file, id):
+            """
+
+            Args:
+                file:
+                id:
+
+            Returns:
+
+            """
             return ""
 
         get_entity_source_code = get_source
@@ -1400,6 +1457,15 @@ def writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf):
     # tags id N has received. The sum of column N states how many
     # tags were given by id N to other developers.
     def get_tags_received_by_id_max_group_name(id_receiver, id_sender):
+        """
+
+        Args:
+            id_receiver:
+            id_sender:
+
+        Returns:
+
+        """
         max_weight = id_mgr.getPI(id_receiver).getActiveTagsReceivedByID(
             id_sender).get_max_weight()
         if max_weight is None:
@@ -1408,6 +1474,15 @@ def writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf):
             return str(max_weight.get_group_name())
 
     def get_links_received_by_id_max_group_name(id_receiver, id_sender):
+        """
+
+        Args:
+            id_receiver:
+            id_sender:
+
+        Returns:
+
+        """
         max_weight = id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type).get_max_weight()
         if max_weight is None:
             return "None"
@@ -1477,6 +1552,16 @@ def emitStatisticalData(cmtlist, id_mgr, logical_depends, outdir,
 
 
 def populatePersonDB(cmtlist, id_mgr, link_type=None):
+    """
+
+    Args:
+        cmtlist:
+        id_mgr:
+        link_type:
+
+    Returns:
+
+    """
     for cmt in cmtlist:
         # create person for author
         ID = id_mgr.getPersonID(cmt.getAuthorName())
@@ -1523,10 +1608,6 @@ def computeLogicalDepends(fileCommit_list, cmt_dict, start_date):
         cmt_dict:
         start_date:
     """
-
-    '''
-
-    '''
 
     func_depends_count = {}
     for file in fileCommit_list.values():
@@ -1878,9 +1959,6 @@ def computeTagLinks(cmtlist, id_mgr):
         id_mgr:
     """
 
-    '''
-
-    '''
     # To obtain the full collaboration information, we need to have
     # the complete list of commits. This is why we don't compute the
     # information during the first parsing stage, but parse the
@@ -2054,6 +2132,15 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                 fileCommitDict, cmtdict, startDate),)
 
             def get_source(file, func_id):
+                """
+
+                Args:
+                    file:
+                    func_id:
+
+                Returns:
+
+                """
                 return fileCommitDict[file].getFuncImpl(func_id)
 
             get_entity_source_code = get_source
@@ -2065,6 +2152,15 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                 fileCommitDict, cmtdict, startDate)
 
             def get_source(file, feature_id):
+                """
+
+                Args:
+                    file:
+                    feature_id:
+
+                Returns:
+
+                """
                 return ""
 
             get_entity_source_code = get_source
@@ -2076,6 +2172,15 @@ def performAnalysis(conf, dbm, dbfilename, git_repo, revrange, subsys_descr,
                 fileCommitDict, cmtdict, startDate)
 
             def get_source(file, feature_id):
+                """
+
+                Args:
+                    file:
+                    feature_id:
+
+                Returns:
+
+                """
                 return ""
 
             get_entity_source_code = get_source
