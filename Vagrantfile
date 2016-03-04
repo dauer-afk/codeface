@@ -22,7 +22,7 @@ Vagrant.configure("2") do |config|
   # Hmm... no Debian image available yet, let's use a derivate
   # Ubuntu 12.04 LTS (Precise Pangolin)
 
- config.vm.provider :virtualbox do |vbox, override|
+  config.vm.provider :virtualbox do |vbox, override|
     override.vm.box = "precise64"
     override.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
