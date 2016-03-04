@@ -1,3 +1,7 @@
+# Enable parallel make
+library(parallel)
+options(Ncpus = detectCores())
+
 filter.installed.packages <- function(packageList)  {
     if("-f" %in% commandArgs(trailingOnly = TRUE)) {
         return(packageList)
