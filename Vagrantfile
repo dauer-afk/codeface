@@ -43,10 +43,10 @@ Vagrant.configure("2") do |config|
     s.inline = "sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
   end
 
-#  config.vm.provision "local-mirror", type: "shell" do |s|
-#    s.privileged = true
-#    s.inline = "sed -i 's|http://[a-z\.]*\.ubuntu\.com/ubuntu|mirror://mirrors\.ubuntu\.com/mirrors\.txt|' /etc/apt/sources.list"
-#  end
+  config.vm.provision "local-mirror", type: "shell" do |s|
+    s.privileged = true
+    s.inline = "sed -i 's|http://[a-z\.]*\.ubuntu\.com/ubuntu|mirror://mirrors\.ubuntu\.com/mirrors\.txt|' /etc/apt/sources.list"
+  end
 
   config.vm.provision "build", type: "shell" do |s|
     s.privileged = false
