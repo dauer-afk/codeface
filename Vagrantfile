@@ -18,6 +18,19 @@ integration-scripts/install_cppstats.sh
 integration-scripts/setup_database.sh
 SCRIPT
 
+# https://gist.github.com/rkh/1009994
+module System
+  extend self
+  def cpu_count
+    return Java::Java.lang.Runtime.getRuntime.availableProcessors if defined? Java::Java
+    return File.read('/proc/cpuinfo').scan(/^processor\s*:/).size if File.exist? '/proc/cpuinfo'
+    require 'win32ole'
+    WIN32OLE.connect("winmgmts://").ExecQuery("select * from Win32_ComputerSystem").NumberOfProcessors
+  rescue LoadError
+    Integer `sysctl -n hw.ncpu 2>/dev/null` rescue 1
+  end
+end
+
 Vagrant.configure("2") do |config|
   # Hmm... no Debian image available yet, let's use a derivate
   # Ubuntu 12.04 LTS (Precise Pangolin)
@@ -26,8 +39,9 @@ Vagrant.configure("2") do |config|
     override.vm.box = "precise64"
     override.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
-    vbox.customize ["modifyvm", :id, "--memory", "4096"]
-    vbox.customize ["modifyvm", :id, "--cpus", "2"]
+    vbox.memory = 4096
+    # Expose all CPUs available
+    vbox.cpus = System.cpu_count
   end
 
   config.vm.provider :lxc do |lxc, override|
