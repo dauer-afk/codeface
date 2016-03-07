@@ -17,8 +17,13 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-""" Prepare base data for the commit cluster analysis
-(statistical operations will be carried out by R)
+
+"""Contains funtions to prepare the base data for the commit cluster analysis.
+After preparation, the statistical operations will be carried out by R.
+
+Attributes:
+    SEED (int): Seed for the random ordering of commits
+    log (logger): Codeface standard logger
 """
 
 import itertools
@@ -40,21 +45,25 @@ from codeface.dbmanager import DBManager, tstamp_to_sql
 from .idManager import idManager
 from codeface.linktype import LinkType
 
-# Global Constants
 SEED = 448
 log = getLogger(__name__)
 
-
+# TODO RENAME THIS FUNCTION! it does not create any sort of connection/write
+#  to the database, it creates a serial object on the file system!
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
              range_by_date, rcranges=None):
-    """
+    """Creates a 'gitVCS' object from the arguments and pickles it in a file.
+
+    The 'gitVCS' object is created from the arguments git_repo, revrange,
+    subsys_descr, link_type and range by date. Then commit data is extracted and
+    the object is pickled to the filesystem.
 
     Args:
-        filename:
-        git_repo:
-        revrange:
-        subsys_descr:
-        link_type:
+        filename(str): Name of the file to pickle the 'gitVCS' object to.
+        git_repo(str): Name of the git repository.
+        revrange(list): Revision range for the object
+        subsys_descr(str):
+        link_type(str):
         range_by_date:
         rcranges:
 
@@ -62,45 +71,33 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type,
 
     """
 
-    # ------------------
-    # configuration
-    # ------------------
     git = gitVCS()
     git.setRepository(git_repo)
     git.setRevisionRange(revrange[0], revrange[1])
     git.setSubsysDescription(subsys_descr)
     git.setRangeByDate(range_by_date)
-
     if rcranges is not None:
         git.setRCRanges(rcranges)
 
-    # ------------------------
-    # data extraction
-    # ------------------------
     git.extractCommitData(link_type=link_type)
 
-    # ------------------------
-    # save data
-    # ------------------------
     log.devinfo("Shelving the VCS object")
     output = open(filename, 'wb')
     pickle.dump(git, output, -1)
     output.close()
     log.devinfo("Finished shelving the VCS object")
 
-
+# TODO Rename, since this does not have anything to do with a DB
 def readDB(filename):
-    """
+    """Unpickles a 'gitVCS' object from a file.
 
     Args:
-        filename:
+        filename(str): Filename of the pickle file.
 
     Returns:
-
+        git(gitVCS): Unpickled gitVCS object
     """
-    #    k = shelve.open(filename)
-    #    git = k["git"]
-    #    k.close()
+
     pkl_file = open(filename, 'rb')
     git = pickle.load(pkl_file)
     pkl_file.close()
@@ -109,15 +106,24 @@ def readDB(filename):
 
 
 def computeSubsysAuthorSimilarity(cmt_subsys, author):
-    """Compute a similarity measure between commit and commit author
-    in terms of touched subsystems (ranges from 0 to 1).
+    """Compute a similarity measure between commit and commit author.
+
+    The similarity is computed in  terms of touched subsystems (ranges from 0
+    to 1).
+
+    Notes:
+        This is naturally subjective because there are many other choices for
+        defining a similarity measure.
 
     Args:
         cmt_subsys:
-        author: """
+        author(str):
 
-    # NOTE: This is naturally subjective because there are many
-    # other choices for defining a similarity measure.
+    Returns:
+        sim(float): Similarity value.
+    """
+
+
     asf = author.getSubsysFraction()
 
     sim = 0
@@ -136,11 +142,17 @@ def computeAuthorAuthorSimilarity(auth1, auth2):
 
     The measure is derived from the subsystem activitiy of the authors.
 
+    Notes:
+        As above, the definition of the similarity measure is subjective.
+
     Args:
-        auth1:
-        auth2:
+        auth1(str):
+        auth2(str):
+
+    Returns:
+        sim(float): Subjectivity value.
     """
-    # NOTE: Again, the definition of the similarity measure is subjectiv
+    # NOTE:
 
     frac1 = auth1.getSubsysFraction()
     frac2 = auth2.getSubsysFraction()
@@ -167,14 +179,13 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
     """Generates the collaboration data from a file snapshot at a particular
     point in time
 
-        Detailed description: the fileSnapShot is a representation of how a file
-    looked at the time of a particular commit. The fileSnapshot is a
-    dictionary with key = a particular commit hash and the value is the how
-    the file looked at the time of that commit.How the file looked is
-    represented by a another dictionary with key = a code line number and the
-    value is a commit hash referencing the commit that contributed that
-    particular line. The commit hashes are then used to reference the people
-    involved.
+    The fileSnapShot is a representation of how a file looked at the time of a
+    particular commit. The fileSnapshot is a dictionary with key = a particular
+    commit hash and the value is the how the file looked at the time of that
+    commit. How the file looked is represented by a another dictionary with
+    key = a code line number and the value is a commit hash referencing
+    the commit that contributed that particular line. The commit hashes are then
+    used to reference the people involved.
 
     Args:
         file_commit:
@@ -184,9 +195,6 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
         startDate:
         random: """
 
-    # ------------------------
-    # variable declarations
-    # ------------------------
     maxDist = 25
     author = True
     fileState = file_commit.getFileSnapShot()
@@ -231,14 +239,13 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
 def compute_snapshot_collaboration_features(
         file_commit, cmt_list, id_mgr, link_type, start_date=None,
         random=False):
-    """
-    Generates the collaboration data from a file snapshot at a particular
+    """Generates the collaboration data from a file snapshot at a particular
     point in time
 
     Detailed description: this function is quite similar to
-    computeSnapshotCollaboration.
-    But to identify interesting lines and groups we use a different logic
-    to be able to do the same for features instead of functions.
+    computeSnapshotCollaboration. But to identify interesting lines and groups
+    we use a different logic to be able to do the same for features instead of
+    functions.
 
 
     Args:
@@ -250,9 +257,6 @@ def compute_snapshot_collaboration_features(
         random:
     """
 
-    # ------------------------
-    # variable declarations
-    # ------------------------
     max_dist = 25
     author = True
     file_state = file_commit.getFileSnapShot()
@@ -319,13 +323,15 @@ def compute_snapshot_collaboration_features(
 
 
 def groupFuncLines(file_commit, file_state, cmtList):
-    """
-    cluster code lines that fall under the same function
+    """Cluster code lines that fall under the same function.
 
     Args:
         file_commit:
         file_state:
         cmtList:
+
+    Returns:
+        func_blks:
     """
     func_indx = {}
     indx = 0
@@ -363,13 +369,15 @@ def groupFuncLines(file_commit, file_state, cmtList):
 
 
 def group_feature_lines(file_commit, file_state, cmt_list):
-    """
-    cluster code lines that fall under the same feature
+    """Cluster code lines that fall under the same feature.
 
     Args:
         file_commit:
         file_state:
         cmt_list:
+
+    Returns:
+        feature_blks:
     """
     feature_blks = {}
     lines = sorted(map(int, file_state.keys()))
@@ -434,7 +442,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
 
 
 def randomizeCommitCollaboration(codeBlks, fileState):
-    """randomizes the location in the file where commits were made
+    """Pseudo-randomizes the location in the file where commits were made.
 
     Commits made to a file and the line number for the commits are captured
     prior to using this function. This function will randomize the location
