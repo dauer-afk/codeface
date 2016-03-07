@@ -119,9 +119,10 @@ def _insert_seqs(message):
     formatted with the $RESET and $BOLD pseudo-variables.
 
     Args:
-        message:
+        message (str): Message strings with pseudo variables.
 
     Returns:
+        str: Message string with ANSI control sequences.
 
     """
 
@@ -129,7 +130,14 @@ def _insert_seqs(message):
 
 
 def _remove_seqs(message):
-    """Remove the $RESET and $BOLD pseudo-variables from a message."""
+    """Remove the $RESET and $BOLD pseudo-variables from a message.
+
+    Args:
+        message (str): Message strings with pseudo variables.
+
+    Returns:
+        str: Stripped message string.
+    """
 
     return message.replace("$RESET", "").replace("$BOLD", "")
 
@@ -140,14 +148,6 @@ class _ColoredFormatter(logging.Formatter):
     """
 
     def format(self, record):
-        """
-
-        Args:
-            record:
-
-        Returns:
-
-        """
 
         levelname = record.levelname
         if levelname in COLORS:

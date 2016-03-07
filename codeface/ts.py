@@ -17,8 +17,9 @@
 # All Rights Reserved.
 
 """Create time series from a sequence of VCS objects"""
-
 # TODO Tear down the deprecated subsys concept, start at "__main__" placeholder
+# TODO NUKE THIS MODULE. IT NO LONGER SERVES A PURPOSE!
+
 
 import argparse
 import os.path
@@ -47,7 +48,7 @@ def doAnalysis(dbfilename, destdir, revrange=None, rc_start=None):
         rc_start (Optional[str]): Commit ID within revrange or None.
 
     Returns:
-        res (TimeSeries): TimeSeries instance containing the results.
+        TimeSeries: TimeSeries instance containing the results.
 
     """
     pkl_file = open(dbfilename, 'rb')

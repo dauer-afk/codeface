@@ -38,7 +38,7 @@ def get_parser():
     parser and the sub-parsers for VCS, mailing list and bugtracker analysis.
 
     Returns:
-        ArgumentParser (ArgumentParser): Instance for the command line interface
+        ArgumentParser: Instance for the command line interface
     """
     parser = argparse.ArgumentParser(
         prog='codeface',

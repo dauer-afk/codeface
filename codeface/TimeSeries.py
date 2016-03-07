@@ -14,6 +14,7 @@
 # Copyright 2013 by Siemens AG< Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 """Provide a generic wrapper for time series of commits."""
+# TODO NUKE THIS MODULE. IT NO LONGER SERVES A PURPOSE!
 
 
 class TimeSeries(object):

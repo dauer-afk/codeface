@@ -22,6 +22,7 @@
 # All Rights Reserved.
 """Analyses the commits."""
 # TODO Add further measures for the commit size
+# TODO NUKE THIS MODULE. IT NO LONGER SERVES A PURPOSE!
 
 from logging import getLogger
 from codeface.commit import Commit

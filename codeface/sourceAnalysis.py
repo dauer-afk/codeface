@@ -49,8 +49,10 @@ class FileAnalysis (object):
     def _parse_XML_index(self):
         """Parse index file generate by deoxygen that contains the compound
         elements
-        Returns:
 
+        Returns:
+            list: List of dicts, each dict of the form
+            {'refid': refid, 'kind': kind, 'name': name}
         """
         comp_list = []
         index_file = path.join(self.outdir, 'xml', 'index.xml')

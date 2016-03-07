@@ -1,7 +1,7 @@
 # Define classes to interact with source code management
 # systems (currently, only git is supported, but adding
 # support for Mercurial and Subversion should be easy to do)
-# This class is designed to be serialisable after the data have
+# This class is designed to be serializable after the data have
 # been read in, so the design should remain unaltered whenever possible.
 # Processing and experimentation steps that require frequent
 # changes must be implemented in different classes.
@@ -40,15 +40,13 @@ from logging import getLogger
 
 from ctags import CTags, TagEntry
 from progressbar import ProgressBar, Percentage, Bar, ETA
-from .util import execute_command
 
-from fileCommit import FileCommit
-
-import commit
-import fileCommit
 import sourceAnalysis
 from codeface.linktype import LinkType
+from commit import Commit
+from fileCommit import FileCommit
 from fileCommit import FileDict
+from .util import execute_command
 
 log = getLogger(__name__)
 
@@ -71,7 +69,7 @@ class ParseError(Error):
         self.id = id
 
 
-class VCS (object):
+class VCS(object):
     """Encapsulate methods to analyse VCS repositories
 
     This base class does nothing in particular, but serves
@@ -85,16 +83,15 @@ class VCS (object):
     (and faster) use by various post-processing and analysis methods.
 
     Attributes:
-        rev_start_date:
+        range_by_date (bool): Get commit ranges using dates.
+            True: Get list of commits made between revision date range.
+            False: Get list of commits reachable between two commits.
     """
 
+    # TODO Make the VCS class use Branch instances instead of range notion!
+
     def __init__(self):
-        """
-
-        Returns:
-
-        """
-        # "None" represents HEAD for end and the inital
+        # "None" represents HEAD for end and the initial
         # commit for start
         self.rev_start_date = None
         self.rev_end_date = None
@@ -102,33 +99,32 @@ class VCS (object):
         self.rev_end = None
         self.repo = None
 
-        # Get commit ranges using dates
-        # True: get list of commits made between revision date range
-        # False: get list of commits reachable in one revision and not the other
+        #
+        #
+        #
         self.range_by_date = False
 
-        # For each subsystem, contains a time-ordered list of all commits
-        # (i.e., _commit_list_dict["block"] is a list[] of ids)
+        # Dict of lists, mapping subsystem names to lists of Commit instances.
+        # Each list of Commits is ordered ascending by timestamp.
         self._commit_list_dict = None
 
-        # The raw commit hashes (no commit.Commit objects) per subsystem,
-        # structure as above.
+        # Dict of lists, mapping subsystem names to lists of strings, denoting
+        # commit hashes.
+        # Each list of Commits is ordered ascending by timestamp.
         self._commit_id_list_dict = None
 
         # When _rc_ranges is set to something like [[A,B], [C,D]],
         # then the commits A..B and C..D are taken to be in release ranges.
-        # All the low-level commit hashes are then stored in _release_id_list
         self._rc_id_list = None
         self._rc_ranges = None
 
-        # Contains all commits indexed by commit id
+        # Dict if Commit instances, mapping from commit ids to Commit.
         self._commit_dict = None
 
-        # Dictionary with key = filename and value = list of all commits
-        # for that file
+        # Dict of FileCommit instances, mapping from file name to FileCommit.
         self._fileCommit_dict = None
 
-        # file names to include in analysis(non-taged based)
+        # List of strings, denoting file names to be included in file analysis.
         self._fileNames = None
 
         self.subsys_description = {}
@@ -181,7 +177,11 @@ class VCS (object):
         in the object instance so that they can be serialised.
 
         Args:
-            subsys: """
+            subsys (str): Subsystem name.
+
+        Returns:
+            list: List of Commit instances.
+        """
         return []
 
     def extractCommitDataRange(self, revrange, subsys="__main__"):
@@ -204,6 +204,7 @@ class VCS (object):
 
 
 def parse_sep_line(line):
+    # TODO Extract, this is not even remotely VCS related
     if not line.startswith("\"sep="):
         raise ParseError(
             ("expected that the csv file header starts with '\"sep=' "
@@ -217,11 +218,16 @@ def parse_sep_line(line):
 
 
 def parse_line(sep, line):
-    """
-    Parses a line from a csv file
-    :param sep:
-    :param line:
-    :return:
+    # TODO Extract, this is not even remotely VCS related
+    # TODO There is no way there isn't a ready made module for this...
+    """Parses a line from a csv file.
+
+    Args:
+        sep (str): Value delimiter.
+        line (str): Single CSV formated line using `sep` as delimiter.
+
+    Returns:
+        list: List of strings, containing all tokens found in `line`.
     """
 
     def parse_line_enumerator(sep, line):
@@ -258,17 +264,17 @@ def parse_line(sep, line):
 
 
 class LineType(object):
-    """
-
-    """
+    # TODO Extract, this is not even remotely VCS related
     IF = "#if"
     ELSE = "#else"
     ELIF = "#elif"
 
 
 def parse_feature_line(sep, line):
-    """
-    parse the current line which is something like:
+    # TODO Extract, this is not even remotely VCS related
+    """Parse the current line.
+
+    The line is something like
     FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
 
     Considering the #ifdef annotation
@@ -276,12 +282,19 @@ def parse_feature_line(sep, line):
     the feature expression is the whole string,while the list of feature
     constants used in the annotation (i.e., [A, B, C]).
 
-    :param line: the line to parse
-    :return: start_line, end_line, line_type, feature_list, feature_expression
-
     Args:
-        sep:
-        sep:
+        sep (str): Value delimiter.
+        line (str): Single CSV formated line using `sep` as delimiter.
+
+
+    Returns:
+        tuple: 5-tuple containing information on the parsed line
+
+        - start_line
+        - end_line
+        - line_type
+        - feature_list
+        - feature_expression
     """
     parsed_line = parse_line(sep, line)
     # FILENAME,LINE_START,LINE_END,TYPE,EXPRESSION,CONSTANTS
@@ -292,7 +305,8 @@ def parse_feature_line(sep, line):
         if line_type_raw not in (LineType.IF, LineType.ELSE, LineType.ELIF):
             raise ParseError((
                 "could not parse feature line (because we could"
-                "not parse the line_type): \"{}\"").format(line), 'CSVFile')
+                "not parse the line_type): \"{}\"").format(
+                line), 'CSVFile')
         line_type = line_type_raw
         if parsed_line[5]:
             feature_list = parsed_line[5].split(';')
@@ -309,19 +323,28 @@ def parse_feature_line(sep, line):
 
 
 def get_feature_lines(parsed_lines, filename):
+    # TODO Extract, this is not even remotely VCS related
     """Calculates dictionaries representing the feature sets
     and the feature expressions for any line of the given file.
 
-    - feature expression: e.g., "(!(defined(A)) && (!(defined(B)) && defined(C)"
-    - feature set: e.g., [A, B, C]
-    (all used constants in the feature expression)
-    :param parsed_lines: a list of tuples with
-    (start_line, end_line, line_type, feature_list, feature_expression) elements
-    :param filename: the name or the analysed files
-    (only used for descriptive error messages if the calculation fails)
-    :return tuple of:
-    feature_lines: a FileDict object to access the feature sets on any line;
-    fexpr_lines: a FileDict object to access the feature expression on any line
+    Args:
+        parsed_lines (list): List of 5-tuples, each tuple containing
+
+            - start_line
+            - end_line
+            - line_type
+            - feature_list
+            - feature_expression
+
+        filename (str): Name of the analysed file (only used for logging).
+
+    Returns:
+        tuple: 2-tuple of FileDict objects.
+
+        - First instance maps line numbers to lists of feature strings.
+          E.g. ["A", "B", "C"], whereby "A", "B" and "C" are constant names.
+        - Second instance maps line numbers to feature expression strings.
+          E.g. "(!(defined(A)) && (!(defined(B)) && defined(C)"
     """
 
     # mapping line -> feature list|feature expression,
@@ -340,9 +363,9 @@ def get_feature_lines(parsed_lines, filename):
     def check_line(line, lines_list):
         if line in lines_list:
             raise ParseError((
-                "every line index can be used at most once "
-                "(problematic line was {0} in file {1})"
-                ).format(line, filename), filename)
+                                 "every line index can be used at most once "
+                                 "(problematic line was {0} in file {1})"
+                             ).format(line, filename), filename)
 
     # We now transform the cppstats output in another output which will
     # help to implement the algorithm below in a simple and fast way.
@@ -361,9 +384,9 @@ def get_feature_lines(parsed_lines, filename):
             continue
         if start_line >= end_line:
             raise ParseError((
-                "start_line can't be greater or equal to end_line "
-                "(problematic line was {0} in file {1})"
-                ).format(start_line, filename), filename)
+                                 "start_line can't be greater or equal to end_line "
+                                 "(problematic line was {0} in file {1})"
+                             ).format(start_line, filename), filename)
 
         if line_type == LineType.IF:
             # ifs start on their own line, however the end_line could
@@ -399,9 +422,9 @@ def get_feature_lines(parsed_lines, filename):
                 annotated_lines[end_line] = is_start, old_feature_list
             elif is_start:
                 raise ParseError((
-                    "line {0} appeared twice as start line "
-                    "(problematic file was {1})"
-                    ).format(start_line, filename), filename)
+                                     "line {0} appeared twice as start line "
+                                     "(problematic file was {1})"
+                                 ).format(start_line, filename), filename)
             else:
                 # So we have a elif with different features,
                 # so we start more features now end add them to the ending
@@ -478,6 +501,7 @@ def get_feature_lines(parsed_lines, filename):
 
 
 def get_feature_lines_from_file(file_layout_src, filename):
+    # TODO Extract, this is not even remotely VCS related
     """
     similar to _getFunctionLines but computes the line numbers of each
     feature in the file.
@@ -666,8 +690,9 @@ class gitVCS(VCS):
         # to take into account?
         # First, get the output for the complete revision
         # range (TODO: cache this)
+        # TODO: The assumptions about monotony don't hold with branches!
         # NOTE: %H prints the hash value of the commit, %ct denotes
-        # the comitter date (it's important to use comitter and not
+        # the committer date (it's important to use committer and not
         # author date; this guarantees monotonically increasing time
         # sequences). %at gives the author timestamp, and %ai gives the
         # time in a format where we can extract the time zone
@@ -793,7 +818,7 @@ class gitVCS(VCS):
             log.critical("_Logstring2Commit could not parse log string!")
             raise Error("_Logstring2Commit could not parse log string!")
 
-        cmt = commit.Commit()
+        cmt = Commit()
         cmt.cdate = match.group(1)
         cmt.id = match.group(2)
         cmt.adate = match.group(3)
@@ -1195,7 +1220,7 @@ class gitVCS(VCS):
 
             # create fileCommit object, one per filename to be
             # stored in _fileCommit_dict
-            file_commit = fileCommit.FileCommit()
+            file_commit = FileCommit()
             file_commit.filename = fname
 
             # get commit objects for the given file within revision range
@@ -1323,7 +1348,7 @@ class gitVCS(VCS):
         # locate all function lines in the file
         if link_type == LinkType.proximity:
             # separate the file commits into code structures
-            self._getFunctionLines(src_lines, file_commit)
+            getFunctionLines(src_lines, file_commit)
         elif link_type in (LinkType.feature_file, LinkType.feature):
             file_commit.set_feature_infos(
                 get_feature_lines_from_file(src_lines, file_commit.filename))
@@ -1334,152 +1359,14 @@ class gitVCS(VCS):
 
         blame_cmt_ids.update(cmt_lines.values())
 
-    def _parseSrcFileDoxygen(self, src_file):
-        log.debug("Running Doxygen analysis")
-        curr_dir = os.path.dirname(os.path.abspath(__file__))
-        conf_file = os.path.join(curr_dir, 'doxygen.conf')
-        tmp_outdir = tempfile.mkdtemp()
-        file_analysis = sourceAnalysis.FileAnalysis(src_file,
-                                                    conf_file,
-                                                    tmp_outdir)
-
-        try:
-            file_analysis.run_analysis()
-        except Exception, e:
-            log.critical(
-                "doxygen analysis error{0} - defaulting to Ctags".format(e))
-            return {}, []
-
-        # Delete tmp directory storing doxygen files
-        shutil.rmtree(tmp_outdir)
-
-        # Get src element bounds
-        func_lines = {}
-        for elem in file_analysis.src_elem_list:
-            # Doxygen analysis index starts at 1
-            start = int(elem['bodystart']) - 1
-            end = int(elem['bodyend']) - 1
-            name = elem['name']
-            f_lines = {line_num: name for line_num in range(start, end + 1)}
-            func_lines.update(f_lines)
-
-        return func_lines, file_analysis.src_elem_list
-
-    def _parseSrcFileCtags(self, src_file):
-        # temporary file where we write transient data needed for ctags
-        tag_file = tempfile.NamedTemporaryFile()
-
-        # run ctags analysis on the file to create a tags file
-        cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tag_file.name,
-                                                              src_file).split()
-        output = execute_command(cmd).splitlines()
-
-        # parse ctags
-        try:
-            tags = CTags(tag_file.name)
-        except:
-            log.critical("failure to load ctags file")
-            raise Error("failure to load ctags file")
-
-        # locate line numbers and structure names
-        entry = TagEntry()
-        func_lines = {}
-        # select the language structures we are interested in identifying
-        # f = functions, s = structs, c = classes, n = namespace
-        # p = function prototype, g = enum, d = macro, t= typedef, u = union
-        structures = ["f", "s", "c", "n", "p", "g", "d", "t", "u"]
-        # TODO: investigate other languages and how ctags assigns the
-        #  structures tags, we may need more languages specific assignments
-        #  in addition to java and c# files, use "ctags --list-kinds" to
-        # see all tag meanings per language
-        fileExt = os.path.splitext(src_file)[1].lower()
-        if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
-            structures.append("m")  # methods
-            structures.append("i")  # interface
-        elif fileExt in ".php":
-            structures.append("i")  # interface
-            structures.append("j")  # functions
-        elif fileExt in ".py":
-            structures.append("m")  # class members
-
-        while tags.next(entry):
-            if entry['kind'] in structures:
-                # Ctags indexes starting at 1
-                line_num = int(entry['lineNumber']) - 1
-
-                # Ctags sometimes assigns line numbers 0 in .js files
-                if line_num < 0:
-                    line_num = 0
-
-                func_lines[line_num] = entry['name']
-
-        # clean up temporary files
-        tag_file.close()
-
-        return func_lines
-
-    def _getFunctionLines(self, file_layout_src, file_commit):
-        """computes the line numbers of each function in the file"""
-        '''
-        - Input -
-        file_name: original name of the file, used only to determine the
-                    programming language (ie. file.c is a c-language file)
-        file_layout_scr: dictionary with key=line number value = line of code
-        file_commit: fileCommit instance where the results will be stored
-
-        - Description -
-        The file_layout is used to construct a source code file that can be
-        parsed by ctags to generate a ctags file. The ctags file is then
-        accessed to extract the function tags and line numbers to be save in
-        the fileCommit object
-        '''
-
-        # grab the file extension to determine the language of the file
-        fileExt = os.path.splitext(file_commit.filename)[1].lower()
-
-        # setup temp file
-        # generate a source code file from the file_layout_src dictionary
-        # and save it to a temporary location
-        srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
-        for line in file_layout_src:
-            srcFile.write(line)
-        srcFile.flush()
-
-        # For certain programming languages we can use doxygen for a more
-        # precise analysis
-        func_lines = {}
-        if (fileExt in ['.java', '.cs', '.d', '.php', '.php4', '.php5',
-                        '.inc', '.phtml', '.m', '.mm', '.py', '.f',
-                        '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl',
-                        '.cpp', '.cxx', '.c', '.cc']):
-            func_lines, src_elems = self._parseSrcFileDoxygen(srcFile.name)
-            file_commit.setSrcElems(src_elems)
-            file_commit.doxygen_analysis = True
-
-        if not func_lines:  # for everything else use Ctags
-            func_lines = self._parseSrcFileCtags(srcFile.name)
-            file_commit.doxygen_analysis = False
-
-        # clean up src temp file
-        srcFile.close()
-
-        # save result to the file commit instance
-        file_commit.setFunctionLines(func_lines)
-
-        # save the implementation for each function
-        rmv_char = '[.{}();:\[\]]'
-        for line_num, src_line in enumerate(file_layout_src):
-            src_line_rmv = re.sub(rmv_char, ' ', src_line.strip())
-            file_commit.addFuncImplLine(line_num, src_line_rmv)
-
     def cmtHash2CmtObj(self, cmtHash):
         """Transforms a commit hash into a commit object.
 
         Args:
-            cmtHash:
+            cmtHash (str): Commit hash or label.
 
         Returns:
-            cmtObj(commit): Commit object with additional commit information
+            Commit: Commit object with additional commit information
                 such as author, committer and date
         """
 
@@ -1512,16 +1399,16 @@ class gitVCS(VCS):
 
         return cmtList
 
-    def addFiles4Analysis(self, cmt_id_list):
+    def addFiles4Analysis(self, commit_name_list):
         """Use this to configure what files should be included in the
         file based analysis (ie. non-tag based method). This will
         query git for the file names and build the list automatically.
-        -- Input --
-        directories - a list of paths to limit the search for filenames
 
         Args:
-            cmt_id_list:
+            commit_name_list (list): List of commit labels or hashes.
         """
+        # TODO Split and extract - the logic for listing files and filtering
+        # should not be mixed!
         cmd_base = 'git --git-dir={0} diff-tree'.format(self.repo).split()
         cmd_base.append("--diff-filter=ACMRTB")
         cmd_base.append("--no-commit-id")
@@ -1530,7 +1417,7 @@ class gitVCS(VCS):
 
         # get all files touched by all commits
         all_files = set()
-        for cmt_id in cmt_id_list:
+        for cmt_id in commit_name_list:
             cmd = cmd_base + [cmt_id]
             cmt_files = execute_command(cmd).splitlines()
             all_files.update(cmt_files)
@@ -1545,3 +1432,146 @@ class gitVCS(VCS):
                      fileName.lower().endswith(fileExt)]
 
         self.setFileNames(fileNames)
+
+
+def parseSrcFileCtags(src_file):
+    # TODO Extract - this is not even remotely VCS specific
+    # temporary file where we write transient data needed for ctags
+    tag_file = tempfile.NamedTemporaryFile()
+
+    # run ctags analysis on the file to create a tags file
+    cmd = "ctags-exuberant -f {0} --fields=nk {1}".format(tag_file.name,
+                                                          src_file).split()
+    output = execute_command(cmd).splitlines()
+
+    # parse ctags
+    try:
+        tags = CTags(tag_file.name)
+    except:
+        log.critical("failure to load ctags file")
+        raise Error("failure to load ctags file")
+
+    # locate line numbers and structure names
+    entry = TagEntry()
+    func_lines = {}
+    # select the language structures we are interested in identifying
+    # f = functions, s = structs, c = classes, n = namespace
+    # p = function prototype, g = enum, d = macro, t= typedef, u = union
+    structures = ["f", "s", "c", "n", "p", "g", "d", "t", "u"]
+    # TODO: investigate other languages and how ctags assigns the
+    #  structures tags, we may need more languages specific assignments
+    #  in addition to java and c# files, use "ctags --list-kinds" to
+    # see all tag meanings per language
+    fileExt = os.path.splitext(src_file)[1].lower()
+    if fileExt in (".java", ".j", ".jav", ".cs", ".js"):
+        structures.append("m")  # methods
+        structures.append("i")  # interface
+    elif fileExt in ".php":
+        structures.append("i")  # interface
+        structures.append("j")  # functions
+    elif fileExt in ".py":
+        structures.append("m")  # class members
+
+    while tags.next(entry):
+        if entry['kind'] in structures:
+            # Ctags indexes starting at 1
+            line_num = int(entry['lineNumber']) - 1
+
+            # Ctags sometimes assigns line numbers 0 in .js files
+            if line_num < 0:
+                line_num = 0
+
+            func_lines[line_num] = entry['name']
+
+    # clean up temporary files
+    tag_file.close()
+
+    return func_lines
+
+
+def parseSrcFileDoxygen(src_file):
+    # TODO Extract - this is not even remotely VCS specific
+    log.debug("Running Doxygen analysis")
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
+    # TODO Bad place to look for a configuration file!
+    conf_file = os.path.join(curr_dir, 'doxygen.conf')
+    tmp_outdir = tempfile.mkdtemp()
+    file_analysis = sourceAnalysis.FileAnalysis(src_file,
+                                                conf_file,
+                                                tmp_outdir)
+
+    try:
+        file_analysis.run_analysis()
+    except Exception, e:
+        log.critical(
+            "doxygen analysis error{0} - defaulting to Ctags".format(e))
+        return {}, []
+
+    # Delete tmp directory storing doxygen files
+    shutil.rmtree(tmp_outdir)
+
+    # Get src element bounds
+    func_lines = {}
+    for elem in file_analysis.src_elem_list:
+        # Doxygen analysis index starts at 1
+        start = int(elem['bodystart']) - 1
+        end = int(elem['bodyend']) - 1
+        name = elem['name']
+        f_lines = {line_num: name for line_num in range(start, end + 1)}
+        func_lines.update(f_lines)
+
+    return func_lines, file_analysis.src_elem_list
+
+
+def getFunctionLines(file_layout_src, file_commit):
+    """Computes the line numbers of each function in the file.
+
+    The file_layout_scr is used to construct a source code file that can be
+    parsed by ctags to generate a ctags file. The ctags file is then
+    accessed to extract the function tags and line numbers to be save in
+    the fileCommit object
+
+    Args:
+        file_layout_scr (dict): Dict of strings, mapping from line numbers
+            to code lines.
+        file_commit (FileCommit): fileCommit instance where the results will
+            be stored.
+    """
+    # TODO Extract - this is not even remotely VCS specific
+    # grab the file extension to determine the language of the file
+    fileExt = os.path.splitext(file_commit.filename)[1].lower()
+
+    # setup temp file
+    # generate a source code file from the file_layout_src dictionary
+    # and save it to a temporary location
+    srcFile = tempfile.NamedTemporaryFile(suffix=fileExt)
+    for line in file_layout_src:
+        srcFile.write(line)
+    srcFile.flush()
+
+    # For certain programming languages we can use doxygen for a more
+    # precise analysis
+    func_lines = {}
+    if (fileExt in ['.java', '.cs', '.d', '.php', '.php4', '.php5',
+                    '.inc', '.phtml', '.m', '.mm', '.py', '.f',
+                    '.for', '.f90', '.idl', '.ddl', '.odl', '.tcl',
+                    '.cpp', '.cxx', '.c', '.cc']):
+        func_lines, src_elems = parseSrcFileDoxygen(srcFile.name)
+        file_commit.setSrcElems(src_elems)
+        file_commit.doxygen_analysis = True
+
+    if not func_lines:  # for everything else use Ctags
+        func_lines = parseSrcFileCtags(srcFile.name)
+        file_commit.doxygen_analysis = False
+
+    # clean up src temp file
+    srcFile.close()
+
+    # save result to the file commit instance
+    file_commit.setFunctionLines(func_lines)
+
+    # save the implementation for each function
+    rmv_char = '[.{}();:\[\]]'
+    for line_num, src_line in enumerate(file_layout_src):
+        src_line_rmv = re.sub(rmv_char, ' ', src_line.strip())
+        file_commit.addFuncImplLine(line_num, src_line_rmv)

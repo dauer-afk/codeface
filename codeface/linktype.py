@@ -41,7 +41,8 @@ class LinkType(object):
     def get_all_link_types():
         """
 
-        Returns: all link types
+        Returns:
+            set: Set of strings with all link types.
 
         """
         return LinkType._all_link_types
@@ -50,7 +51,9 @@ class LinkType(object):
     def get_tag_types():
         """
 
-        Returns: List containing the tag types for committer2author relationship
+        Returns:
+            list: List containing the tag types for committer2author
+            relationship.
         """
         return ["Signed-off-by", "Acked-by", "CC", "Reviewed-by",
                 "Reported-by", "Tested-by", "Patch"]

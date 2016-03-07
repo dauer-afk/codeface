@@ -66,7 +66,7 @@ class BatchJob(object):
             endmsg (str): Optional log message to print after job completion.
 
         Returns:
-            BatchJob
+            BatchJob:
         """
         self.id = id
         self.func = func

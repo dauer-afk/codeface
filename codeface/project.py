@@ -24,11 +24,13 @@ Methods:
 """
 
 from logging import getLogger
-from pkg_resources import resource_filename
 from os.path import join as pathjoin, split as pathsplit, abspath
-from .dbmanager import DBManager
-from .configuration import Configuration, ConfigurationError
+
+from pkg_resources import resource_filename
+
 from .cluster.cluster import doProjectAnalysis, LinkType
+from .configuration import Configuration, ConfigurationError
+from .dbmanager import DBManager
 from .ts import dispatch_ts_analysis
 from .util import (execute_command, generate_reports, check4ctags,
                    check4cppstats, BatchJobPool, generate_analysis_windows)
@@ -59,12 +61,15 @@ def project_setup(conf, recreate):
         recreate (bool): If true, remove the project from the database first.
 
     Returns:
-        project_id (int): ID of the project in the database.
-        dbm (DBManager): Instance of DBManager configured for this project.
-        all_range_ids (list): List of ints, containing the ID of all ranges in
-            the database which have been constructed from the revision labels
-            found in the configuration.
+        tuple: Objects of interest for the next phases.
 
+        project_id (int): ID of the project in the database.
+
+        dbm (DBManager): Instance of DBManager configured for this project.
+
+        all_range_ids (list): List of ints, containing the ID of all ranges in
+        the database which have been constructed from the revision labels found
+        in the configuration.
     """
 
     log.info("=> Setting up project '%s'", conf["project"])
