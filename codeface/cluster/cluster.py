@@ -48,8 +48,7 @@ from codeface.linktype import LinkType
 SEED = 448
 log = getLogger(__name__)
 
-# TODO RENAME THIS FUNCTION! it does not create any sort of connection/write
-#  to the database, it creates a serial object on the file system!
+
 def createDB(filename, git_repo, revrange, subsys_descr, link_type,
              range_by_date, rcranges=None):
     """Creates a 'gitVCS' object from the arguments and pickles it in a file.
@@ -70,6 +69,7 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type,
     Returns:
 
     """
+    # TODO Rename to 'create_and_pickle_gitVCS', since it is not a DB operation
 
     git = gitVCS()
     git.setRepository(git_repo)
@@ -87,7 +87,7 @@ def createDB(filename, git_repo, revrange, subsys_descr, link_type,
     output.close()
     log.devinfo("Finished shelving the VCS object")
 
-# TODO Rename, since this does not have anything to do with a DB
+
 def readDB(filename):
     """Unpickles a 'gitVCS' object from a file.
 
@@ -97,6 +97,7 @@ def readDB(filename):
     Returns:
         git(gitVCS): Unpickled gitVCS object
     """
+    # TODO Rename to 'unpickle_gitVCS', since unpickling is not a DB op
 
     pkl_file = open(filename, 'rb')
     git = pickle.load(pkl_file)
@@ -122,7 +123,6 @@ def computeSubsysAuthorSimilarity(cmt_subsys, author):
     Returns:
         sim(float): Similarity value.
     """
-
 
     asf = author.getSubsysFraction()
 
@@ -191,10 +191,12 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
         file_commit:
         cmtList:
         id_mgr:
-        link_type:
+        link_type(str):
         startDate:
-        random: """
+        random(bool):
+    """
 
+    # TODO check inner function for redundancy
     maxDist = 25
     author = True
     fileState = file_commit.getFileSnapShot()
@@ -232,20 +234,18 @@ def computeSnapshotCollaboration(file_commit, cmtList, id_mgr, link_type,
 
             # calculate the collaboration coefficient for each code block
             [computeCommitCollaboration(cluster, cmt, id_mgr, link_type,
-                                        maxDist, author) for cluster in clusters
-             if cluster]
+                                        maxDist, author)
+             for cluster in clusters if cluster]
 
 
-def compute_snapshot_collaboration_features(
-        file_commit, cmt_list, id_mgr, link_type, start_date=None,
-        random=False):
-    """Generates the collaboration data from a file snapshot at a particular
-    point in time
+def compute_snapshot_collaboration_features(file_commit, cmt_list, id_mgr,
+                                            link_type, start_date=None,
+                                            random=False):
+    """Generates the collaboration data from a file snapshot.
 
-    Detailed description: this function is quite similar to
-    computeSnapshotCollaboration. But to identify interesting lines and groups
-    we use a different logic to be able to do the same for features instead of
-    functions.
+    This function is quite similar to computeSnapshotCollaboration.
+    But to identify interesting lines and groups we use a different logic to be
+    able to do the same for features instead of functions.
 
 
     Args:
@@ -254,8 +254,9 @@ def compute_snapshot_collaboration_features(
         id_mgr:
         link_type:
         start_date:
-        random:
+        random(bool):
     """
+    # TODO check inner function for redundancy
 
     max_dist = 25
     author = True
@@ -331,7 +332,7 @@ def groupFuncLines(file_commit, file_state, cmtList):
         cmtList:
 
     Returns:
-        func_blks:
+        func_blks(list):
     """
     func_indx = {}
     indx = 0
@@ -358,7 +359,11 @@ def groupFuncLines(file_commit, file_state, cmtList):
                 and (curr_line + 1 == next_line):
             blk_end += 1
         else:
-            func_blks[curr_func_indx].append(codeBlock.codeBlock(blk_start, blk_end, cmtList[str(curr_cmt_id)].getAuthorPI().getID(), cmtList[str(curr_cmt_id)].getCommitterPI().getID(), curr_cmt_id, curr_func_id))
+            func_blks[curr_func_indx].append(
+                codeBlock.codeBlock(blk_start, blk_end, cmtList[
+                    str(curr_cmt_id)].getAuthorPI().getID(), cmtList[str(
+                    curr_cmt_id)].getCommitterPI().getID(), curr_cmt_id,
+                                    curr_func_id))
             blk_start = next_line
             blk_end = blk_start
 
@@ -456,12 +461,12 @@ def randomizeCommitCollaboration(codeBlks, fileState):
     code.
 
     Args:
-        codeBlks: a set of codeBlock objects
+        codeBlks(codeBlock): a set of codeBlock objects
         fileState: the original file that the code blocks were found from, this
             is a dictionary that maps code line numbers to commit hashes
 
     Returns:
-        randCodeBlks: the randomized codeBlock objects
+        randCodeBlks(list): the randomized codeBlock objects
 
     """
 
@@ -496,46 +501,39 @@ def randomizeCommitCollaboration(codeBlks, fileState):
     return codeBlksRand
 
 
-# TODO DOCSTRING! That is horrible!
+
 def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
                                author=False):
-    """
+    """Computes collaboration strength between commits.
+
     Computes a value that represents the collaboration strength
     between a commit of interest and every other commit that
-    contributed code in close proximity the commit of interests
-    contributions. The method computes all possible combinations
-    of code block relationships then averages. This is very similar
-    to the function "computePersonsCollaboration" except we consider
-    the commit hash to identify the contribution instead of the person
-    then later map the commit to a person. The advantages is we can
-    differentiate between when an author made a contribution. This way
-    we can identify when an author/committer is collaborating with
+    contributed code in close proximity to that commits contributions. The
+    method computes all possible combinations of code block relationships,
+    then averages. This is very similar to the function
+    "computePersonsCollaboration", except we use the commit hash to identify
+    the contribution instead of the person, then later map the commit to a
+    person. The advantages is that is time of the contribution is discernable.
+    This way we can identify when an author/committer is collaborating with
     oneself. A strong collaboration with oneself would possibly
     suggest a special case where other developers don't want to
-    or cannot contribute. This information may be significant and
-    we should try and capture it. This information is not possible
+    or cannot contribute. This information is not possible
     to capture with "computePersonsCollaboration" because when we
     first map commit hashes to a person we lose the ability to resolve
     different (in time) contributions by a person.
-    - Input -
-    codeBlks - a collection of codeBlock objects
-    cmt      - the commit object of the revision we are interested in
-                measuring the collaboration for
-    id_mgr   - manager for people and information relevant to them
-                the collaboration metric is stored in this object
-    maxDist  - maximum separation of code for consideration, beyond
-               this distance the code block is ignored in the
-               calculation
-    author   - if true, then commits authors are considered for collaboration
-                if false then commit committers are considered for collaboration
 
     Args:
-        codeBlks:
-        cmt:
-        id_mgr:
+        codeBlks(list): A list of codeBlock objects
+        cmt:the commit object of the revision we are interested in measuring the
+            collaboration for
+        id_mgr:manager for people and information relevant to them the
+            collaboration metric is stored in this object
         link_type:
-        maxDist:
-        author:
+        maxDist: Maximum separation of code for consideration, beyond this
+            distance the code block is ignored in the calculation
+        author:if true, then commits authors are considered for collaboration
+                if false then commit committers are considered for collaboration
+
 
     """
 
@@ -576,29 +574,25 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
 
 
 def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
-    """
+    """Comptue collaboration value between persons.
+
     Computes a value that represents the collaboration strength
     between a person of interest and every other person that
     contributed code in close proximity the person of interests
     contributions. The method computes all possible combinations
-    of code block relationships then averages.
-    - Input -
-    codeBlks - a collection of codeBlock objects
-    personId - a unique identifier of an individual who contributed
-               to at least one code block in codeBlks
-    id_mgr   - manager for people and information relevant to them
-                the collaboration metric is stored in this object
-    maxDist  - maximum separation of code for consideration, beyond
-               this distance the code block is ignored in the
-               calculation
+    of code block relationships, then averages.
 
     Args:
-        codeBlks:
-        personId:
-        id_mgr:
-        maxDist:
+        codeBlks(list): a collection of codeBlock objects
+        personId: a unique identifier of an individual who contributed
+               to at least one code block in codeBlks
+        id_mgr:  manager for people and information relevant to them
+                the collaboration metric is stored in this object
+        maxDist:  maximum separation of code for consideration, beyond
+               this distance the code block is ignored in the
+               calculation
     """
-    # variable declarations
+
     person = id_mgr.getPI(personId)  # all Edges are outwards from this person
 
     # get all blocks contributed by personId
@@ -631,31 +625,26 @@ def computePersonsCollaboration(codeBlks, personId, id_mgr, maxDist):
 
 
 def computeBlksSize(blks1, blks2):
-    """
-
-    Args:
-        blks1:
-        blks2:
+    """Computes total size in lines of two sets of 'codeBlock' objects.
 
     Returns:
-
+        size_total(int): Total size of the blocks in lines.
     """
-    # compute the total size of two sets of codeBlock objects
     blks_total = blks1 + blks2
     size_total = 0
+
     for blk in blks_total:
         size_total += blk.end - blk.start + 1
+
     return size_total
 
 
 def compute_block_weight(blocks1, blocks2):
-    """
-
-    Args:
-        blocks1:
-        blocks2:
+    """Generates a 'RelationWeight' object from the argument 'codeBlocks'.
 
     Returns:
+        RelationWeight: Instance of the 'RelationWeight' class
+            with the extracted parameters.
 
     """
     commit_ids1 = [blk.cmtHash for blk in blocks1]
@@ -666,21 +655,18 @@ def compute_block_weight(blocks1, blocks2):
 
 
 def computeEdgeStrength(blk1, blk2, maxDist):
-    """
+    """Calculates the weight of the edge connecting two 'codeBlocks'.
+
     Calculates a value that indicates how strongly the two
     code blocks are related based on proximity
-    - Input -
-    blk1, blk2: codeBlock objects
-    maxDist: the maximum distance two blocks
-             may be separated
-    - Output -
-    EdgeStrength: a floating point number representing how related
-                  the two code blocks are
 
     Args:
-        blk1:
-        blk2:
-        maxDist:
+        blk1(codeBlock):
+        blk2(codeBlock):
+        maxDist(int): Maximum distance the 'codeBlock's may be seperated.
+
+    Returns:
+        edgeStrength(float): Represents how related the two 'codeBlock' args are
     """
 
     # calculate the degree of separation between the code blocks
@@ -697,38 +683,27 @@ def computeEdgeStrength(blk1, blk2, maxDist):
 
 
 def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
-    """
-    Group the code blocks into clusters, this an
-    ad hoc simple method. The goal is to group code
-    into clusters around the commit of interest and we
-    are trying to identify related code based on proximity
-    to the commit of interest.
+    """Groups 'codeBlock's into clusters.
 
-    -- Input --
-    codeBlks: an array of codeBlock objects for a particular file
-    snapShotCmt: the commit object which marks the point in time when
-                 the file contents (contained in codeBlks) were
-                 acquired
-   -- Output --
-   blkClusters - a collection of clusters, each cluster contains a subset of the
-                 codeBlks input array
+    Group the code blocks into clusters, this is a simple ad hoc method.
+    The goal is to group code into clusters around the commit-of-interest and
+    we are trying to identify related code based on proximity to the
+    commit-of-interest.
 
     Args:
-        codeBlks:
-        snapShotCmt:
-        maxDist:
+        codeBlks(list): an array of codeBlock objects for a particular file
+        snapShotCmt: the commit object which marks the point in time when the
+            file contents (contained in codeBlks) were acquired
+        maxDist(int):
         author:
+
+    Returns:
+        blkClusters(list): List of 'codeBlock' clusters,each cluster contains
+        a subset of the codeBlks input array
    """
-    # =========================================================
+
     # get the id of the person of interest, that is the one
     # which made the contribution of interest
-    # =========================================================
-    # personId = None
-    # if author:
-    #    personId = snapShotCmt.getAuthorPI().getID()
-
-    # else:
-    #    personId = snapShotCmt.getCommitterPI().getID()
     cmtId = snapShotCmt.id
 
     # find code blocks that correspond to personId
@@ -746,14 +721,12 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
 
         indx += 1
 
-    # =========================================================
     # determine what code blocks of interest should be clustered
     # together, penalize not forming a new cluster based on
     # distance between farthest apart blocks
     # take advantage of the fact that the blks are sorted, we don't
     # have to compare all blocks to each other (n choose 2)
-    # =========================================================
-    # initialize variables
+
     blkClusters = []  # a collection of clusters
     cluster = []  # a collection of blocks that constitute a single cluster
     clusterStartBlk = codeBlks[blksOfInterest[0]]  # beginning of a cluster
@@ -783,15 +756,14 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
     # add final cluster
     blkClusters.append(cluster)
 
-    # =========================================================
     # for the remaining blocks assign them to the appropriate
     # on the basis of nearest cluster to the block
     # we always want the distance measurement to be w.r.t. the
     # commit of interest blocks, makes for a messy initialization
-    # =========================================================
+
     # TODO: rewrite this, use the fact that no distance measure
-    # is necessary when blk index falls between a single clusters
-    # blk indices
+    # TODO is necessary when blk index falls between a single clusters
+    # TODO blk indices
     finalClusterIdx = len(blkClusters) - 1
 
     currClusterIdx = 0
@@ -843,26 +815,19 @@ def simpleCluster(codeBlks, snapShotCmt, maxDist, author=False):
 
 
 def removePriorCommits(fileState, clist, startDate):
-    """
-    removes commits that occured prior to a startDate
-
-    - Input -
-    fileState: dictionary, key = code line number and value =
-                commit hash for that line
-    clist:     list of all commit objects, referenced by commit hash
-    startDate: all commits older than this date are removed
-
-    - Output -
-    modFileState: a modified fileState with all lines commited prior to
-                  the startDate removed
+    """Removes commits that occured prior to a 'startDate'
 
     Args:
-        fileState:
-        clist:
-        startDate:
+        fileState(dict): A dict with code line numbers as keys and commit hashes
+            for those lines as values
+        clist(list): All commit objects, referenced by commit hash
+        startDate(int): all commits older than this date are removed
+
+    Returns:
+        modFileState(dict): 'fileState' with all commits prior to 'startDate'
+            removed.
     """
 
-    # variable declarations
     modFileState = {}
 
     for (lineNum, cmtId) in fileState.items():
@@ -870,12 +835,9 @@ def removePriorCommits(fileState, clist, startDate):
         if cmtId in clist:
             # get commit object containing commit date
             cmtObj = clist[cmtId]
-
+            # if the commit is after the start date, add it to the output
             if cmtObj.getCdate() >= startDate:
                 modFileState[lineNum] = cmtId
-            # else:
-            # if the commit is not found in clist then we know it is a commit
-            # made before the startDate and we can ignore it
 
     return modFileState
 
@@ -1314,7 +1276,9 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
     # End for id
 
     # Perform bulk insert
-    dbm.doExecCommit("INSERT INTO author_commit_stats " + "(authorId, releaseRangeId, added, deleted, total, numcommits) " + "VALUES (%s, %s, %s, %s, %s, %s)", author_cmt_stats_rows)
+    dbm.doExecCommit(
+        "INSERT INTO author_commit_stats " + "(authorId, releaseRangeId, added, deleted, total, numcommits) " + "VALUES (%s, %s, %s, %s, %s, %s)",
+        author_cmt_stats_rows)
 
 
 def writeDependsToDB(
@@ -1389,7 +1353,9 @@ def writeDependsToDB(
                 cmt_depend_rows.extend(rows)
 
     # Perform batch insert
-    dbm.doExecCommit("INSERT INTO commit_dependency (commitId, file, entityId, entityType, size, impl)" + " VALUES (%s,%s,%s,%s,%s,%s)", cmt_depend_rows)
+    dbm.doExecCommit(
+        "INSERT INTO commit_dependency (commitId, file, entityId, entityType, size, impl)" + " VALUES (%s,%s,%s,%s,%s,%s)",
+        cmt_depend_rows)
 
 
 def writeAdjMatrix2File(id_mgr, outdir, conf):
@@ -1430,7 +1396,10 @@ def writeAdjMatrix2File(id_mgr, outdir, conf):
 
     else:
         for id_receiver in idlist:
-            out.write("\t".join([str(id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type).get_weight()) for id_sender in idlist]) + "\n")
+            out.write("\t".join([str(
+                id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender,
+                                                               link_type).get_weight())
+                                 for id_sender in idlist]) + "\n")
 
     out.close()
 
@@ -1491,7 +1460,8 @@ def writeAdjMatrixMaxWeight2File(id_mgr, outdir, conf):
         Returns:
 
         """
-        max_weight = id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender, link_type).get_max_weight()
+        max_weight = id_mgr.getPI(id_receiver).getLinksReceivedByID(id_sender,
+                                                                    link_type).get_max_weight()
         if max_weight is None:
             return "None"
         else:
