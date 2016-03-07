@@ -14,35 +14,37 @@
 # Copyright 2013, Siemens AG, Mitchell Joblin <mitchell.joblin.ext@siemens.com>
 # All Rights Reserved.
 
-import codeLine
+"""Container module for a number of code lines."""
+import codeface.cluster.codeLine as codeLine
+
 
 class codeBlock:
-    '''
-    A code block is a contiguous set of lines of code from a single
-    commit
-    '''
+    """A codeBlock is a contiguous set of lines of code from a single commit.
 
+    This object represents a continous set of of 'codeLines' from a single
+    commit, including author and commiter metadata.
 
-    #===========================
-    # Constructors
-    #===========================
+    Attributes:
+        start(int): Starting line of the code block.
+        end(int): Ending line of the code block.
+        authorId(int): ID of the author of the code block.
+        committerId(int): ID of the committer.
+        cmtHash(int): Specifies the name of this block. This enables tracing the
+            functions/features/files who are responsible for a specific
+            collaboration.
+        groupName(str):
+    """
 
-    def __init__(self, start=None, end=None, authorId=None, committerId=None, cmtHash=None, groupName=None):
-
-        self.start       = start #start of the code block
-        self.end         = end   #end of the code block
-        self.authorId    = authorId
+    def __init__(self, start=None, end=None, authorId=None, committerId=None,
+                 cmtHash=None, groupName=None):
+        self.start = start
+        self.end = end
+        self.authorId = authorId
         self.committerId = committerId
-        self.cmtHash     = cmtHash
-        # specified the name of this block,
-        # this is saved so we can trace where collaborations come from
-        # ie which function/feature/file is responsible for a specific
-        # collaboration.
-        self.groupName     = groupName
-    #===========================
-    # Accessors and Modifiers
-    #===========================
+        self.cmtHash = cmtHash
+        self.groupName = groupName
 
+    # TODO Refactor java-style getters and setters to python-style
     def get_group_name(self):
         return self.groupName
 
@@ -50,4 +52,5 @@ class codeBlock:
         return self.codeLines
 
     def add_codeLine(self, lineNum, cmtHash, authorId, committerId):
-        self.codeLines.append( codeLine.codeLine(lineNum, cmtHash, authorId, committerId) )
+        self.codeLines.append(
+            codeLine.codeLine(lineNum, cmtHash, authorId, committerId))
