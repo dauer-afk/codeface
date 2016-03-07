@@ -849,22 +849,17 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
     interest (snapShotCommit) and ignore code lines that are
     located some far distance away.
 
-    - Input -
-    fileState:      code line numbers together with commit hashes
-    snapShotCommit: the commit hash that marks when the fileState was acquired
-    maxDist:        indicates how large the area of interest should be
-    file_commit: a fileCommit instance
-    - Output -
-    modFileState: the file state after line not of interest are removed
-
     Args:
-        fileState:
-        snapShotCommit:
-        maxDist:
+        fileState(dict): code line numbers together with commit hashes
+        snapShotCommit: the commit hash that marks when the fileState was acquired
+        maxDist(int): Indicates how large the area of interest should be.
         cmtlist:
-        file_commit:
+        file_commit(fileCommit): A fileCommit instance.
+
+    Returns:
+        modFileState(dict): The 'fileState' with only lines-of-interest.
     """
-    # variable declarations
+
     snapShotCmtDate = cmtlist[snapShotCommit].getCdate()
     modFileState = {}
     snapshot_func_set = set()
@@ -880,7 +875,6 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
             snapShotCmtLines.append(lineNum)
             # retrieve the function id that each line falls into
             snapshot_func_set.add(file_commit.findFuncId(int(lineNum)))
-    # end for line
 
     # remove lines that are from commits that occur after the snapShotCmt
     for lineNum, cmtId in fileState.items():
@@ -895,14 +889,11 @@ def linesOfInterest(fileState, snapShotCommit, maxDist, cmtlist, file_commit):
         if cmtDate <= snapShotCmtDate:
             # check if the line will fall under one of the functions that the
             # snapshot commit lines fall under (ie. we only want to keep lines
-            # that are in the same functions as the snapshot commit
+            # that are in the same functions as the snapshot commit)
+            # ignore all lines belonging to functions outside the scope or
+            # in future commits
             if file_commit.findFuncId(int(lineNum)) in snapshot_func_set:
                 modFileState[lineNum] = fileState[lineNum]
-
-                # else: ignore line since it belongs to some function outside of
-                # the set of functions we are interested in
-
-                # else: forget line because it was in a future commit
 
     return modFileState
 
@@ -915,25 +906,23 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
     interest (snapShotCommit) and ignore code lines that are
     located some far distance away.
 
-    - Input -
-    fileState:      code line numbers together with commit hashes
-    snapShotCommit: the commit hash that marks when the fileState was acquired
-    maxDist:        indicates how large the area of interest should be
-    file_commit: a fileCommit instance
-    - Output -
-    mod_filestate: the file state after line not of interest are removed
-
     Args:
-        file_state:
-        snapshot_commit:
+        file_state(dict): Code line numbers together with commit hashes
+        snapshot_commit: the commit hash that marks when the fileState was
+            acquired
         cmt_list:
-        file_commit:
+        file_commit(fileCommit): a fileCommit instance
+
+    Returns:
+        mod_file_state(dict): The file state after all lines not of interest
+            have been removed.
     """
-    # variable declarations
+
     if snapshot_commit is None:
         snapshot_cmt_date = None
     else:
         snapshot_cmt_date = cmt_list[snapshot_commit].getCdate()
+
     mod_file_state = {}
     snapshot_feature_set = set()
 
@@ -948,7 +937,6 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
             # retrieve the features that each line falls into
             snapshot_feature_set.update(
                 file_commit.findFeatureList(int(lineNum)))
-    # end for line
 
     # remove lines that are from commits that occur after the snapShotCmt
     for lineNum, cmt_id in file_state.items():
@@ -965,64 +953,62 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
             # the snapshot commit lines fall under (ie. we only want to
             # keep lines that are in the same feature as the snapshot
             # commit)
-
+            # ignore all lines which belong to other features or to
+            # future commits
             if any(com in snapshot_feature_set
                    for com in file_commit.findFeatureList(int(lineNum))):
                 mod_file_state[lineNum] = file_state[lineNum]
-
-                # else: ignore line since it belongs to some feature
-                # outside of the set of features we are interested in
-
-                # else: forget line because it was in a future commit
 
     return mod_file_state
 
 
 def blockDist(blk1, blk2):
-    """
-    Finds the euclidean distance between two code blocks.
-    This is the positive distance from the start of one block
-    to the end of the second block.
+    """Determines the distance between blocks.
+
+    Finds the euclidean distance between two code blocks. This is the positive
+    distance from the start of one block to the end of the second block.
 
     Args:
-        blk1:
-        blk2:
+        blk1(codeBlock):
+        blk2(codeBlock):
+
+    Returns:
+        int: Returns -1 for identical blocks, 0 for adjacent blocks,
+            and distance for the rest.
     """
     # TODO: throw exception for overlapping blocks and identical blocks
-    # currently if this is called with identical blocks distance = -1
+    # TODO currently if this is called with identical blocks distance = -1
 
     if blk1.start > blk2.end:
-
         dist = blk1.start - blk2.end
 
     else:
         dist = blk2.start - blk1.end
 
-    return (
-        dist - 1)  # subtract 1 so that adjacent blocks have a distance of zero
+    return dist - 1
 
 
 def findCodeBlocks(fileState, cmtList, author=False):
-    """
+    """Find all code blocks for a 'fileState'.
+
     Finds code blocks for a given file state, a code block is defined by the
     start and end line numbers for contiguous lines with a single author or
     committer.  If author is set to true then code blocks are found based on
     author of commit otherwise committer identifier is used.
 
     Args:
-        fileState:
+        fileState(dict):
         cmtList:
         author:
+
+    Returns:
+        codeBlocks(list): All 'codeBlocks' containing 'fileState'.
     """
-    # ---------------------
-    # variable definitions
-    # ---------------------
+
     codeLines = {}  # key = line number, value = codeLine object
 
-    # -----------------------------------------------------
     # find out who is responsible (unique ID) for each line
     # of code for the file snapshot
-    # ------------------------------------------------------
     for (key, cmtId) in fileState.items():
         lineNum = int(key)
 
@@ -1034,9 +1020,7 @@ def findCodeBlocks(fileState, cmtList, author=False):
         codeLines[lineNum] = codeLine.codeLine(lineNum, cmtId, authorId,
                                                committerId)
 
-    # ------------------------
     # find contiguous lines
-    # ------------------------
     # TODO: check if sorting is actually necessary (in most cases I presume not)
     lineNums = sorted(map(int, fileState.keys()))
 
