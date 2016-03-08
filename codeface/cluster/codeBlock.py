@@ -15,7 +15,9 @@
 # All Rights Reserved.
 
 """Container module for a number of code lines."""
-import codeface.cluster.codeLine as codeLine
+# TODO Move module to model namespace.
+
+from codeface.cluster.codeLine import codeLine
 
 
 class codeBlock:
@@ -25,15 +27,18 @@ class codeBlock:
     commit, including author and commiter metadata.
 
     Attributes:
-        start(int): Starting line of the code block.
-        end(int): Ending line of the code block.
-        authorId(int): ID of the author of the code block.
-        committerId(int): ID of the committer.
-        cmtHash(int): Specifies the name of this block. This enables tracing the
-            functions/features/files who are responsible for a specific
+        start (int): Starting line of the code block.
+        end (int): Ending line of the code block.
+        authorId (int): ID of the author of the code block.
+        committerId (int): ID of the committer.
+        cmtHash (int): Specifies the name of this block. This enables tracing
+            the functions/features/files who are responsible for a specific
             collaboration.
         groupName(str):
+        codeLines (list): List of codeLine instances.
     """
+    # TODO Class name should be upper case, and must not collide with module.
+    # TODO Fix capitalization on attributes.
 
     def __init__(self, start=None, end=None, authorId=None, committerId=None,
                  cmtHash=None, groupName=None):
@@ -43,8 +48,9 @@ class codeBlock:
         self.committerId = committerId
         self.cmtHash = cmtHash
         self.groupName = groupName
+        self.codeLines = []
 
-    # TODO Refactor java-style getters and setters to python-style
+    # TODO Remove Perl style getters and setters.
     def get_group_name(self):
         return self.groupName
 
@@ -53,4 +59,4 @@ class codeBlock:
 
     def add_codeLine(self, lineNum, cmtHash, authorId, committerId):
         self.codeLines.append(
-            codeLine.codeLine(lineNum, cmtHash, authorId, committerId))
+            codeLine(lineNum, cmtHash, authorId, committerId))

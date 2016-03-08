@@ -15,7 +15,12 @@
 # Copyright 2012, 2013, Siemens AG, Wolfgang Mauerer <wolfgang.mauerer@siemens.com>
 # All Rights Reserved.
 
-from logging import getLogger;
+# TODO Move module to model namespace.
+# TODO Module name should be lower case and must not collide with class name.
+
+
+from logging import getLogger
+
 from codeface.linktype import LinkType
 
 log = getLogger(__name__)
@@ -88,10 +93,11 @@ class RelationWeights:
         new.maxWeight = self.maxWeight
         return new
 
+
 class PersonInfo:
     """Information about a commiter, and his relation to other commiters"""
 
-    def __init__(self, subsys_names = [], ID=None, name="", email=""):
+    def __init__(self, subsys_names=[], ID=None, name="", email=""):
         self.ID = ID
         self.name = name
         self.email = email
@@ -148,8 +154,8 @@ class PersonInfo:
         # have beenreceived form a specific ID.
         self.active_tags_received_by_id = {}
 
-        #count how many links based on the proximity metric were received by
-        #a given ID
+        # count how many links based on the proximity metric were received by
+        # a given ID
         self.proximity_links_recieved_by_id = {}
 
         # count how many links based on the feature metric were received by
@@ -160,21 +166,23 @@ class PersonInfo:
         # received by a given ID
         self.feature_file_links_recieved_by_id = {}
 
-        #count how many links based on committer -> author were received by
-        #a given ID
+        # count how many links based on committer -> author were received by
+        # a given ID
         self.committer_links_recieved_by_id = {}
 
-        #count how many links based on commits in the same file were received by
-        #a given ID
+        # count how many links based on commits in the same file were received by
+        # a given ID
         self.file_links_recieved_by_id = {}
 
     def setID(self, ID):
         self.ID = ID
+
     def getID(self):
         return self.ID
 
     def setName(self, name):
         self.name = name
+
     def getName(self):
         if self.name == "":
             return self.email
@@ -182,6 +190,7 @@ class PersonInfo:
 
     def setEmail(self, email):
         self.email = email
+
     def getEmail(self):
         return self.email
 
@@ -201,8 +210,10 @@ class PersonInfo:
         return self._getLinksReceivedByID(self.active_tags_received_by_id, ID)
 
     def getLinksReceivedByID(self, ID, link_type):
+        # TODO Rewrite to switch-case.
         if link_type == LinkType.proximity:
-            return self._getLinksReceivedByID(self.proximity_links_recieved_by_id, ID)
+            return self._getLinksReceivedByID(
+                self.proximity_links_recieved_by_id, ID)
         elif link_type == LinkType.feature:
             return self._getLinksReceivedByID(
                 self.feature_links_recieved_by_id, ID)
@@ -210,10 +221,14 @@ class PersonInfo:
             return self._getLinksReceivedByID(
                 self.feature_file_links_recieved_by_id, ID)
         elif link_type == LinkType.committer2author:
-            return self._getLinksReceivedByID(self.committer_links_recieved_by_id, ID)
+            return self._getLinksReceivedByID(
+                self.committer_links_recieved_by_id, ID)
         elif link_type == LinkType.file:
-            return self._getLinksReceivedByID(self.file_links_recieved_by_id, ID)
+            return self._getLinksReceivedByID(self.file_links_recieved_by_id,
+                                              ID)
+
     def getAllTagsReceivedByID(self, ID):
+        # TODO Unresolvable reference, is this method dead code?
         return self._getTagsReceivedByID(self.all_tags_received_by_id, ID)
 
     def addRelation(self, relation_type, ID, assoc, weight):
@@ -250,7 +265,7 @@ class PersonInfo:
         if relation_type in LinkType.get_tag_types():
             self.tagged_commits[relation_type].append(cmt.id)
 
-        self.linksPerformed +=1
+        self.linksPerformed += 1
         self.addCmt2Subsys(cmt, relation_type)
 
     def addCmt2Subsys(self, cmt, relation_type):
@@ -278,15 +293,15 @@ class PersonInfo:
 
     def computeStats(self, link_type):
 
-        #computer tag specific stats
+        # computer tag specific stats
         if link_type == "Tag":
             self.computeTagStats()
 
-        #determine fraction of relation types
-        #for each subsystem
+        # determine fraction of relation types
+        # for each subsystem
         self.computeSubsysFraction()
 
-        #sum over the relation types
+        # sum over the relation types
         self.computeRelationSums()
 
     def computeTagStats(self):
@@ -297,18 +312,17 @@ class PersonInfo:
 
         if self.linksPerformed == 0:
             log.warning("{0} did not perform any links?!".
-                  format(self.getName()))
+                        format(self.getName()))
             return
 
-#        print("{0} performed {1} tags".format(self.getName(),
-#                                               self.tagsPerformed))
+        #        print("{0} performed {1} tags".format(self.getName(),
+        #                                               self.tagsPerformed))
 
         # Per-author distribution of tags (e..g, 30% Signed-Off, 60%
         # CC, 10% Acked-By)
         for tag in LinkType.get_tag_types() + ["author"]:
             self.tag_fraction[tag] = \
-                len(self.tagged_commits[tag])/float(self.linksPerformed)
-
+                len(self.tagged_commits[tag]) / float(self.linksPerformed)
 
     def computeSubsysFraction(self):
 
@@ -339,7 +353,7 @@ class PersonInfo:
         for tag in active_tag_types:
             self._sum_relations(tag, self.active_tags_received_by_id)
 
-        #sum other possible link types
+        # sum other possible link types
         self._sum_relations(
             LinkType.proximity, self.proximity_links_recieved_by_id)
         self._sum_relations(
@@ -375,18 +389,11 @@ class PersonInfo:
         # NOTE: We use only a single difftype although the information
         # from multiple is available
         for cmt in self.commit_list:
-            self.commit_stats["added"]   += cmt.getAddedLines(0)
+            self.commit_stats["added"] += cmt.getAddedLines(0)
             self.commit_stats["deleted"] += cmt.getDeletedLines(0)
 
-        # TODO: There are many other summary statistics that we could
-        # compute, but which ones make sense?
+            # TODO: There are many other summary statistics that we could
+            # compute, but which ones make sense?
 
     def getCommitStats(self):
         return self.commit_stats
-
-
-############################ Test cases #########################
-if __name__ == "__main__":
-    personInfo = PersonInfo("sepp")
-
-# TODO: Implement a couple of test cases

@@ -26,6 +26,8 @@
 # WM 15-Feb-2010 (Polished and generalised version based on
 # various older Perl scripts)
 
+# TODO Move module to model namespace.
+
 # TODO: When the git implementation is finished, the general parts
 # should be factored out and the VCS specific parts be implemented
 # for other VCSes. See the comments of the functions on what must be
@@ -139,6 +141,7 @@ class VCS(object):
         return self.rev_end_date
 
     def getCommitDate(self, rev):
+        # TODO Not implemented?
         return self._getRevDate(rev)
 
     def getFileCommitDict(self):

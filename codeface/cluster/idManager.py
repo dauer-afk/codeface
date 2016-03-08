@@ -25,12 +25,13 @@ import json
 import string
 import random
 
-class idManager:
+class idManager (object):
     """Provide unique IDs for developers.
 
     This class provides an interface to the REST id server. Heuristics to
     detect developers who operate under multiple identities are included
     in the server."""
+    # TODO Class name should be upper case, and must not collide with module.
     def __init__(self, dbm, conf):
         self.subsys_names = []
 

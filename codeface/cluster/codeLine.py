@@ -14,27 +14,35 @@
 # Copyright 2013, Siemens AG, Mitchell Joblin <mitchell.joblin.ext@siemens.com>
 # All Rights Reserved.
 
+# TODO Move module to model namespace.
+
+
 class codeLine:
+    """Container class for storing meta information on a single line of code.
 
-    #===========================
-    # Constructors
-    #===========================
-    def __init__(self, lineNum=None, cmtHash=None, authorId=None, committerId=None):
+    Attributes:
+        lineNum (int): Original line number.
+        cmtHash (str): Commit hash.
+        authorId (int): Numeric ID of the author, as used in the DB layer.
+        committerId (int): Numeric ID of the committer as used in the DB layer.
 
-        self.lineNum     = lineNum
-        self.cmtHash     = cmtHash
-        self.authorId    = authorId
+    """
+
+    # TODO Class name should be upper case, and must not collide with module.
+    # TODO Fix capitalization on attributes.
+
+    def __init__(self, lineNum=None, cmtHash=None, authorId=None,
+                 committerId=None):
+        self.lineNum = lineNum
+        self.cmtHash = cmtHash
+        self.authorId = authorId
         self.committerId = committerId
 
-
-    #===========================
-    # Accessors and Modifiers
-    #===========================
-
+    # TODO Remove Perl style getters and setters.
     def get_lineNum(self):
         return self.lineNum
 
-    def set_lineNum(self,lineNum):
+    def set_lineNum(self, lineNum):
         self.lineNum = lineNum
 
     def get_cmtHash(self):
@@ -54,4 +62,3 @@ class codeLine:
 
     def set_commiterId(self, committerId):
         self.committerId = committerId
-

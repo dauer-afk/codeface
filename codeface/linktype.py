@@ -16,6 +16,7 @@
 # All Rights Reserved.
 """Module for containing the LinkType class"""
 __author__ = "drag0on"
+# TODO Who is supposed to be "drag0on"?
 
 
 class LinkType(object):
@@ -27,6 +28,7 @@ class LinkType(object):
     """
     # TODO This is NOT a proper Enum type class as it can't be instantiated
     # The "constants" are also permutable this way, which isn't desired
+    # Make this a proper enum to achieve type safety.
     tag = "tag"
     proximity = "proximity"
     committer2author = "committer2author"
