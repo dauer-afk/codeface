@@ -26,6 +26,12 @@ Attributes:
     log (logger): Codeface standard logger
 """
 
+# TODO A lot of functions reference something named 'fileState'
+# Looks like it is a dict with a fixed structure, should be a class.
+
+# TODO A lot of functions reference something named cmt_list
+# It's actually a dict, not a list, and should be encapsulated properly.
+
 import itertools
 import math
 import os
@@ -923,8 +929,8 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
 
     Args:
         file_state(dict): Code line numbers together with commit hashes
-        snapshot_commit (str): the commit hash that marks when the fileState was
-            acquired
+        snapshot_commit (Optional[str]): the commit hash that marks when the
+            fileState was acquired
         cmt_list (dict): Dict of Commit objects, mapping commit hashes to Commits.
         file_commit (FileCommit): a fileCommit instance
 
@@ -1872,6 +1878,7 @@ def compute_feature_proximity_links(
                     weight = RelationWeight(
                         min(size1, size2), feature, weight.get_commit_ids1(),
                         weight.get_commit_ids2())
+                    # TODO Cumulative, but still attributed to a commit?
                     author1.addSendRelation(link_type, author2.getID(), cmt,
                                             weight)
                     author2.addReceiveRelation(link_type, author1.getID(),
