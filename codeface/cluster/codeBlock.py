@@ -16,6 +16,7 @@
 
 """Container module for a number of code lines."""
 # TODO Move module to model namespace.
+# TODO There is an overlap with FileDict
 
 from codeface.cluster.codeLine import codeLine
 
@@ -31,10 +32,10 @@ class codeBlock:
         end (int): Ending line of the code block.
         authorId (int): ID of the author of the code block.
         committerId (int): ID of the committer.
-        cmtHash (int): Specifies the name of this block. This enables tracing
+        cmtHash (str): Commit hash of the revision this block was extracted.
+        groupName(int): Specifies the name of this block. This enables tracing
             the functions/features/files who are responsible for a specific
             collaboration.
-        groupName(str):
         codeLines (list): List of codeLine instances.
     """
     # TODO Class name should be upper case, and must not collide with module.

@@ -27,10 +27,13 @@ Attributes:
 """
 
 # TODO A lot of functions reference something named 'fileState'
-# Looks like it is a dict with a fixed structure, should be a class.
+# Is actually a dict, mapping line numbers to commit hashes.
+# So essentially mostly what "FileDict" is actually for.
 
 # TODO A lot of functions reference something named cmt_list
 # It's actually a dict, not a list, and should be encapsulated properly.
+# It maps commit hashes to Commit objects within the current range.
+# Should probably use the VCS object instead - that already holds that data.
 
 import itertools
 import math
@@ -38,24 +41,22 @@ import os
 import os.path
 import pickle
 import random
-import codeface.cluster.codeBlock as codeBlock
-import codeface.cluster.codeLine as codeLine
-
-from codeface.fileCommit import FileCommit
-
-from codeface.commit import Commit
-
 from logging import getLogger
+
 from progressbar import ProgressBar, Percentage, Bar, ETA
+
+from codeface.VCS import gitVCS
+from codeface.cluster.PersonInfo import RelationWeight, PersonInfo
+from codeface.cluster.codeBlock import codeBlock
+from codeface.cluster.codeLine import codeLine
+from codeface.cluster.idManager import idManager
+from codeface.commit import Commit
 from codeface.commit_analysis import (getSignoffCount, getSignoffEtcCount,
                                       getInvolvedPersons)
-from codeface.cluster.PersonInfo import RelationWeight, PersonInfo
-from codeface.VCS import gitVCS
-from codeface.dbmanager import DBManager, tstamp_to_sql
-from .idManager import idManager
-from codeface.linktype import LinkType
-
 from codeface.configuration import Configuration
+from codeface.dbmanager import DBManager, tstamp_to_sql
+from codeface.fileCommit import FileCommit
+from codeface.linktype import LinkType
 
 SEED = 448
 log = getLogger(__name__)
@@ -341,7 +342,7 @@ def groupFuncLines(file_commit, file_state, cmtList):
 
     Args:
         file_commit (FileCommit):
-        file_state (dict):
+        file_state (dict): Dict of strings, mapping line numbers to commit hashes.
         cmtList (dict): Dict of Commit objects, mapping commit hashes to Commits.
 
     Returns:
@@ -373,15 +374,23 @@ def groupFuncLines(file_commit, file_state, cmtList):
             blk_end += 1
         else:
             func_blks[curr_func_indx].append(
-                codeBlock.codeBlock(blk_start, blk_end, cmtList[
-                    str(curr_cmt_id)].getAuthorPI().getID(), cmtList[str(
-                    curr_cmt_id)].getCommitterPI().getID(), curr_cmt_id,
-                                    curr_func_id))
+                codeBlock(
+                    blk_start, blk_end,
+                    cmtList[str(curr_cmt_id)].getAuthorPI().getID(),
+                    cmtList[str(curr_cmt_id)].getCommitterPI().getID(),
+                    curr_cmt_id, curr_func_id))
             blk_start = next_line
             blk_end = blk_start
 
     # boundary case
-    func_blks[next_func_indx].append(codeBlock.codeBlock(blk_start, blk_end, cmtList[str(next_cmt_id)].getAuthorPI().getID(), cmtList[str(next_cmt_id)].getCommitterPI().getID(), next_cmt_id, curr_func_id))
+    # TODO This breaks horribly for single line files.
+    func_blks[next_func_indx].append(
+        codeBlock(
+            blk_start, blk_end,
+            cmtList[str(next_cmt_id)].getAuthorPI().getID(),
+            cmtList[str(next_cmt_id)].getCommitterPI().getID(),
+            next_cmt_id,
+            curr_func_id))
 
     return func_blks
 
@@ -391,7 +400,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
 
     Args:
         file_commit (FileCommit):
-        file_state (dict):
+        file_state (dict): Dict of strings, mapping line numbers to commit hashes.
         cmt_list (dict): Dict of Commit objects, mapping commit hashes to Commits.
 
     Returns:
@@ -438,7 +447,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
                     curr_cmt = cmt_list[str(curr_cmt_id)]
                     feature_blks[feature]. \
                         append(
-                        codeBlock.codeBlock(
+                        codeBlock(
                             blk_start[feature], blk_end[feature],
                             curr_cmt.getAuthorPI().getID(),
                             curr_cmt.getCommitterPI().getID(),
@@ -450,7 +459,7 @@ def group_feature_lines(file_commit, file_state, cmt_list):
     for feature in feature_blks:
         if feature in curr_features:  # Close all open feature blocks
             feature_blks[feature].append(
-                codeBlock.codeBlock(
+                codeBlock(
                     blk_start[feature], blk_end[feature],
                     cmt_list[str(next_cmt_id)].getAuthorPI().getID(),
                     cmt_list[str(next_cmt_id)].getCommitterPI().getID(),
@@ -474,7 +483,7 @@ def randomizeCommitCollaboration(codeBlks, fileState):
     code.
 
     Args:
-        codeBlks (codeBlock): a set of codeBlock objects
+        codeBlks (list): List of codeBlock objects
         fileState (dict): the original file that the code blocks were found
             from, this is a dictionary that maps code line numbers to commit
             hashes.
@@ -515,7 +524,6 @@ def randomizeCommitCollaboration(codeBlks, fileState):
     return codeBlksRand
 
 
-
 def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
                                author=False):
     """Computes collaboration strength between commits.
@@ -538,7 +546,7 @@ def computeCommitCollaboration(codeBlks, cmt, id_mgr, link_type, maxDist,
 
     Args:
         codeBlks (list): A list of codeBlock objects
-        cmt (FileCommit): the commit object of the revision we are interested in
+        cmt (Commit): the commit object of the revision we are interested in
             measuring the collaboration for
         id_mgr (idManager): manager for people and information relevant to them
             the collaboration metric is stored in this object
@@ -658,8 +666,8 @@ def compute_block_weight(blocks1, blocks2):
     """Generates a 'RelationWeight' object from the argument 'codeBlocks'.
 
     Args:
-        blocks1 (codeBlock):
-        blocks2 (codeBlock):
+        blocks1 (list): List of codeBlock objects.
+        blocks2 (list): List of codeBlock objects.
 
     Returns:
         RelationWeight: Instance of the 'RelationWeight' class
@@ -928,14 +936,14 @@ def lines_of_interest_features(file_state, snapshot_commit, cmt_list,
     located some far distance away.
 
     Args:
-        file_state(dict): Code line numbers together with commit hashes
+        file_state (dict): Dict of strings, mapping line numbers to commit hashes.
         snapshot_commit (Optional[str]): the commit hash that marks when the
             fileState was acquired
         cmt_list (dict): Dict of Commit objects, mapping commit hashes to Commits.
         file_commit (FileCommit): a fileCommit instance
 
     Returns:
-        mod_file_state(dict): The file state after all lines not of interest
+        mod_file_state (dict): The file state after all lines not of interest
             have been removed.
     """
 
@@ -1038,8 +1046,8 @@ def findCodeBlocks(fileState, cmtList, author=False):
         committerId = cmtList[str(cmtId)].getCommitterPI().getID()
 
         # assign the personID to the line number
-        codeLines[lineNum] = codeLine.codeLine(lineNum, cmtId, authorId,
-                                               committerId)
+        codeLines[lineNum] = codeLine(lineNum, cmtId, authorId,
+                                      committerId)
 
     # find contiguous lines
     # TODO: check if sorting is actually necessary (in most cases I presume not)
@@ -1064,10 +1072,10 @@ def findCodeBlocks(fileState, cmtList, author=False):
         if nextLineNum != (currLineNum + 1):  # not contiguous line
 
             # save code block span for prior contributor
-            codeBlocks.append(codeBlock.codeBlock(blkStart, blkEnd,
-                                                  currCodeLine.authorId,
-                                                  currCodeLine.committerId,
-                                                  currCodeLine.cmtHash))
+            codeBlocks.append(codeBlock(blkStart, blkEnd,
+                                        currCodeLine.authorId,
+                                        currCodeLine.committerId,
+                                        currCodeLine.cmtHash))
 
             # reinitialize start and end for next
             # contributors block
@@ -1087,10 +1095,10 @@ def findCodeBlocks(fileState, cmtList, author=False):
             else:  # different contributor
 
                 # save code block span for prior contributor
-                codeBlocks.append(codeBlock.codeBlock(blkStart, blkEnd,
-                                                      currCodeLine.authorId,
-                                                      currCodeLine.committerId,
-                                                      currCodeLine.cmtHash))
+                codeBlocks.append(codeBlock(blkStart, blkEnd,
+                                            currCodeLine.authorId,
+                                            currCodeLine.committerId,
+                                            currCodeLine.cmtHash))
 
                 # reinitialize start and end for next
                 # contributors block
@@ -1099,10 +1107,10 @@ def findCodeBlocks(fileState, cmtList, author=False):
 
     # take care of boundary case
     # save final block span for prior contribution
-    codeBlocks.append(codeBlock.codeBlock(blkStart, blkEnd,
-                                          nextCodeLine.authorId,
-                                          nextCodeLine.committerId,
-                                          nextCodeLine.cmtHash))
+    codeBlocks.append(codeBlock(blkStart, blkEnd,
+                                nextCodeLine.authorId,
+                                nextCodeLine.committerId,
+                                nextCodeLine.cmtHash))
 
     return codeBlocks
 
@@ -1282,7 +1290,9 @@ def writeIDwithCmtStats2File(id_mgr, outdir, releaseRangeID, dbm, conf):
 
     # Perform bulk insert
     dbm.doExecCommit(
-        "INSERT INTO author_commit_stats " + "(authorId, releaseRangeId, added, deleted, total, numcommits) " + "VALUES (%s, %s, %s, %s, %s, %s)",
+        "INSERT INTO author_commit_stats " +
+        "(authorId, releaseRangeId, added, deleted, total, numcommits) " +
+        "VALUES (%s, %s, %s, %s, %s, %s)",
         author_cmt_stats_rows)
 
 

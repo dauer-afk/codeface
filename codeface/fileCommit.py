@@ -78,6 +78,7 @@ class FileDict(object):
         :param line_nr: the line number of the information
         :param info: the information for the current line
         """
+        # TODO lastItem should be updated internally on insert...
         if line_nr < self.lastItem:
             raise ValueError("can only incrementally add items")
         self.line_list.append(line_nr)

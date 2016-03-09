@@ -55,6 +55,7 @@ class Commit(object):
         taggers_subsys_similarity (float): Focus of taggers on the subsystems,
             also normalized.
     """
+    # TODO 'id' is misleading, that term conflicts with the numeric IDs
     # TODO Replace java-style getters with python-style properties
     # TODO `diff_info` appears to be dead code
     # http://2ndscale.com/rtomayko/2005/getters-setters-fuxors
