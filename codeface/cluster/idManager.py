@@ -153,6 +153,10 @@ class idManager (object):
         return self.persons
 
     def getPI(self, ID):
+        """
+        Returns:
+            PersonInfo:
+        """
         return self.persons[ID]
 
     def _cleanName(self, name):

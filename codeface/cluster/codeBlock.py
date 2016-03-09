@@ -17,6 +17,7 @@
 """Container module for a number of code lines."""
 # TODO Move module to model namespace.
 # TODO There is an overlap with FileDict
+# TODO The functionality to store lines of code is never used.
 
 from codeface.cluster.codeLine import codeLine
 

@@ -1535,7 +1535,7 @@ def getFunctionLines(file_layout_src, file_commit):
     the fileCommit object
 
     Args:
-        file_layout_scr (dict): Dict of strings, mapping from line numbers
+        file_layout_src (dict): Dict of strings, mapping from line numbers
             to code lines.
         file_commit (FileCommit): fileCommit instance where the results will
             be stored.
