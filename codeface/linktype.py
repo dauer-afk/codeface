@@ -44,7 +44,7 @@ class LinkType(object):
         """
 
         Returns:
-            set: Set of strings with all link types.
+            tuple: Set of strings with all link types.
 
         """
         return LinkType._all_link_types

@@ -1348,12 +1348,12 @@ def writeDependsToDB(
     """Write logical dependency data to database
 
     Args:
-        logical_depends (set): Set of dependency dicts. Each dict maps commit
+        logical_depends (tuple): Set of dependency dicts. Each dict maps commit
             hashes to lists of filename / frequency tuples.
         cmt_list (dict): Dict of Commit objects, mapping commit hashes to Commits.
         dbm (DBManager):
         conf (Configuration):
-        entity_type (set): Set of entity type names, same dimension as
+        entity_type (tuple): Set of entity type names, same dimension as
             logical_depends.
         get_entity_source_code (lambda):
     """
@@ -1560,14 +1560,14 @@ def emitStatisticalData(cmt_list, id_mgr, logical_depends, outdir,
     Args:
         cmt_list (dict): Dict of Commit objects, mapping commit hashes to Commits.
         id_mgr (idManager):
-        logical_depends (set): Set of dependency dicts. Each dict maps commit
+        logical_depends (tuple): Set of dependency dicts. Each dict maps commit
             hashes to lists of filename / frequency tuples.
         outdir (str):
         releaseRangeID (int):
         dbm (DBManager):
         conf (Configuration):
         fileCommitDict (dict):
-        entity_type (set): Set of entity types, same dimension as logical_depends.
+        entity_type (tuple): Set of entity types, same dimension as logical_depends.
         get_entity_source_code (lambda):
     """
 
