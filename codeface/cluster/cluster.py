@@ -1181,8 +1181,7 @@ def createStatisticalData(cmt_list, id_mgr, link_type):
 
 def writeCommitData2File(cmt_list, id_mgr, outdir, releaseRangeID, dbm, conf,
                          cmt_depends=None, fileCommitDict=None):
-    """
-    commit information is written to the outdir location
+    """Commit information is written to the outdir location
 
     Args:
         cmt_list (dict): Dict of Commit objects, mapping commit hashes to Commits.
@@ -1194,7 +1193,8 @@ def writeCommitData2File(cmt_list, id_mgr, outdir, releaseRangeID, dbm, conf,
         cmt_depends:
         fileCommitDict (dict):
     """
-    # TODO The function name is a blatant lie.
+    # TODO check argmuents for use
+    # TODO rename to 'write_commit_data_to_DB', since this does not write files
 
     # Save information about the commits
     # NOTE: We could care about different diff types, but currently,
@@ -1261,8 +1261,6 @@ def writeCommitData2File(cmt_list, id_mgr, outdir, releaseRangeID, dbm, conf,
         # signoff-info (subsys info of signers)
         # similarity_between_author_and_signers
         # predominantly add, remove, or modify code (3-level factor)
-
-    # End for cmt
 
     # Perform bulk insert
     dbm.doExecCommit("INSERT INTO commit (" + ", ".join(value_names) + ")" +
