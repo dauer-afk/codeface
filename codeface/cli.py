@@ -30,6 +30,8 @@ from codeface.logger import set_log_level, start_logfile, log
 from codeface.configuration import Configuration
 from codeface.util import execute_command
 from codeface.project import project_analyse, mailinglist_analyse
+from codeface.bugtracker.bugtracker_dispatcher import bt_analyse
+
 
 def get_parser():
     parser = argparse.ArgumentParser(prog='codeface',
@@ -93,6 +95,37 @@ def get_parser():
                         help="Directory to store analysis results in")
     ml_parser.add_argument('mldir',
                         help="Directory for mailing lists")
+    bt_parser = sub_parser.add_parser(
+        'bt',
+        help="Run bugtracker analysis")
+    bt_parser.set_defaults(
+        func=cmd_bt)
+    bt_parser.add_argument(
+        '-c', '--config',
+        help="Codeface configuration file",
+        required=True)
+    bt_parser.add_argument(
+        '-p', '--project',
+        help="Project configuration file",
+        required=True)
+    bt_parser.add_argument(
+        '-ct',
+        choices=['fs', 'none', 'db'],
+        default = 'fs',
+        help="Define the cache type used.",
+        required=True)
+    bt_parser.add_argument(
+        '-cd', '--cachedir',
+        help="Directory for filesystem cache")
+    bt_parser.add_argument(
+        '-so',
+        help="Only scrapes the website and puts the results in cache")
+    bt_parser.add_argument(
+        '-po',
+        help="Only parses cache content and create temporary tables")
+    bt_parser.add_argument(
+        '-t',
+        help="Only transform fact tables to DB")
 
     dyn_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
     dyn_parser.set_defaults(func=cmd_dynamic)
@@ -150,6 +183,40 @@ def cmd_dynamic(args):
     Rcode = "library(shiny); runApp(host='0.0.0.0', port={})".format(args.port)
     cmd = ["Rscript", "-e", Rcode, "-c", cfg]
     execute_command(cmd, direct_io=True, cwd=cwd)
+def cmd_bt(args):
+    """Dispatch the "bt" command.
+
+    Args:
+        args:
+
+    Returns:
+        int: 0 on success, !=0 otherwise
+
+    """
+    # If caching in the filesystem, we need a directory
+    if ((args.ct is 'fs' or args.ct is None) and (args.cachedir is None)):
+        raise Exception("Lacking cache directory")
+
+    # Make dirs absolute
+    if args.ct is 'fs' or args.ct is None:
+        cachedir = os.path.abspath(args.cachedir)
+    else:
+        cachedir = None
+
+    codeface_conf = os.path.abspath(args.config)
+    bt_conf = os.path.abspath(args.bugtracker)
+
+    logfile = args.logfile
+    if logfile:
+        logfile = os.path.abspath(logfile)
+
+    # Contains cache_type, scrape_only, parse_only and transform only
+    flags = (args.ct, args.so, args.po)
+
+    bt_analyse(codeface_conf, bt_conf, args.ct, cachedir, logfile,
+               flags, args.jobs)
+    return 0
+
 
 def cmd_test(args):
     '''Sub-command handler for the ``test`` command.'''

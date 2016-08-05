@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # This file is part of Codeface. Codeface is free software: you can
 # redistribute it and/or modify it under the terms of the GNU General Public
 # License as published by the Free Software Foundation, version 2.
@@ -16,17 +14,16 @@
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
 
-from setuptools import setup, find_packages
+import unittest
+from codeface.bugtracker import bugtracker_dispatcher
 
-setup(name='codeface',
-      version='0.2.0',
-      description='Codeface: Socio-Technical Analysis of Software Development',
-      author='Wolfgang Mauerer',
-      author_email='wolfgang.mauerer@oth-regensburg.de',
-      url='https://github.com/siemens/codeface',
-      packages=find_packages(exclude=['experiments']),
-      package_data={'codeface': ['R/*.r', 'R/cluster/*.r', 'perl/*.pl']},
-      entry_points={'console_scripts': ['codeface = codeface.cli:main']},
-      install_requires=['progressbar', 'VCS',
-                        'python_ctags', 'PyYAML', 'MySQL_python', 'requests']
-      )
+
+class TestBugtrackerDispatcher(unittest.TestCase):
+    """
+    Dispatcher tests, checking for proper creation/dispatch/termination
+    """
+    def test_creation(self):
+        # suspended until we have implementation of workings...
+        bt_disp = bugtracker_dispatcher.BugtrackerDispatcher("https://radioharakriri.de")
+        bt_disp.init_workers(1, "generic")
+        pass
