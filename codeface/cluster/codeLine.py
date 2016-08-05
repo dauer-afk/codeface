@@ -13,6 +13,7 @@
 #
 # Copyright 2013, Siemens AG, Mitchell Joblin <mitchell.joblin.ext@siemens.com>
 # All Rights Reserved.
+"""Container module for codeLine class."""
 
 # TODO Move module to model namespace.
 
@@ -25,7 +26,6 @@ class codeLine:
         cmtHash (str): Commit hash.
         authorId (int): Numeric ID of the author, as used in the DB layer.
         committerId (int): Numeric ID of the committer as used in the DB layer.
-
     """
 
     # TODO Class name should be upper case, and must not collide with module.

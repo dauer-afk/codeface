@@ -21,7 +21,6 @@
 
 from codeface.cluster.codeLine import codeLine
 
-
 class codeBlock:
     """A codeBlock is a contiguous set of lines of code from a single commit.
 
