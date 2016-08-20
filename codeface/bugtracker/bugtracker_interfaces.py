@@ -15,7 +15,7 @@
 # All Rights Reserved.
 
 """
-Interface class for cache
+Interface class for cache, Currently mostly to provide an overview
 """
 
 
@@ -35,7 +35,6 @@ class ScraperInterface(object):
     def init_url_queue(conf, url_queue):
         raise NotImplementedError
 
-    #write a wrapper for those two
 
     @staticmethod
     def scrape_target(target_url, bugtracker_type, cache_type, cache_dir=None):

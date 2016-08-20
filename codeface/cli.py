@@ -119,13 +119,32 @@ def get_parser():
         help="Directory for filesystem cache")
     bt_parser.add_argument(
         '-so',
+        action = 'store_true',
+        default = False,
         help="Only scrapes the website and puts the results in cache")
     bt_parser.add_argument(
         '-po',
+        action = 'store_true',
+        default = False,
         help="Only parses cache content and create temporary tables")
     bt_parser.add_argument(
-        '-t',
-        help="Only transform fact tables to DB")
+        '-cont',
+        action = 'store_true',
+        help="Resumes partially scraped project, DOES NOT resume parially "
+             "parsed project",
+        default=False)
+    bt_parser.add_argument(
+        '-discard',
+        action = 'store_true',
+        help = "Only discards database",
+        default = False
+    )
+    bt_parser.add_argument(
+        '--asProject',
+        action = 'store_true',
+        help = "Treat product as project",
+        default = False
+    )
 
     dyn_parser = sub_parser.add_parser('dynamic', help='Start R server for a dynamic graph')
     dyn_parser.set_defaults(func=cmd_dynamic)
@@ -183,38 +202,68 @@ def cmd_dynamic(args):
     Rcode = "library(shiny); runApp(host='0.0.0.0', port={})".format(args.port)
     cmd = ["Rscript", "-e", Rcode, "-c", cfg]
     execute_command(cmd, direct_io=True, cwd=cwd)
+
+
 def cmd_bt(args):
     """Dispatch the "bt" command.
 
+    Extracts the arguments from the argument dictionary made the the parser and
+    sub parsers into variables and performs some basic sanity checks.
+
+    Notes:
+        The == is there because of the string content comparison! DO NOT REMOVE
     Args:
-        args:
+        args(dict): The command line arguments as read by the parser
 
     Returns:
         int: 0 on success, !=0 otherwise
 
     """
+    log.info("Parsing command line input")
     # If caching in the filesystem, we need a directory
-    if ((args.ct is 'fs' or args.ct is None) and (args.cachedir is None)):
+    if ((args.ct == 'fs' or args.ct is None) and (args.cachedir is None)):
         raise Exception("Lacking cache directory")
 
-    # Make dirs absolute
-    if args.ct is 'fs' or args.ct is None:
-        cachedir = os.path.abspath(args.cachedir)
+    # Perform some basic sanity checking with the flags
+    if((args.po is True) and (args.so is True)):
+        log.critical("Setting both the parse only and scrape only flags leaves"
+                     "nothing to do")
+        return 1
+    if ((args.so is True) and (args.ct == "None")):
+        log.critical("Nowhere to store the scraped results, aborting")
+        return 1
+
+    # If the user wants to parse only but sets the continue flag, ignore it
+    if ((args.po is True) and (args.cont is True)):
+        log.critical("Ignoring continue flag, since there is no scrape to "
+                     "continue")
+        args.cont = False
+
+    # Provide feedback to the user
+    if args.ct == 'fs':
+        ct_long = "file system"
     else:
-        cachedir = None
+        ct_long = "not set"
+    log.debug("Cachetype is {ct}.".format(ct=ct_long))
 
+    # Make dirs absolute, first the cache directory when using fs cache
+    if args.ct == "fs":
+        cachedir = os.path.abspath(args.cachedir)
+    # Then the rest
     codeface_conf = os.path.abspath(args.config)
-    bt_conf = os.path.abspath(args.bugtracker)
-
+    bt_conf = os.path.abspath(args.project)
+    # Deal with the logfile when not writing to stio
     logfile = args.logfile
     if logfile:
         logfile = os.path.abspath(logfile)
 
-    # Contains cache_type, scrape_only, parse_only and transform only
-    flags = (args.ct, args.so, args.po)
+    # Extract the flags from the command line arguments for easier handling.
+    # The tuple contains the cachetype string,the parse-only, scrape-only
+    # continue, discard and the Product-as-Project flags
+    flags = (args.ct, args.so, args.po, args.cont, args.discard, args.asProject)
 
-    bt_analyse(codeface_conf, bt_conf, args.ct, cachedir, logfile,
-               flags, args.jobs)
+    log.debug("Calling bugtracker dispatcher")
+    bt_analyse(codeface_conf, bt_conf, cachedir, logfile, flags, args.jobs)
     return 0
 
 

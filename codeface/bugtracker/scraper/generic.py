@@ -14,7 +14,7 @@
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
 """
-Generic scraper module for processing bugtrackers - also: testing purposes
+Testing module. If trying something new, use this
 """
 
 
@@ -52,15 +52,13 @@ class Generic(ScraperInterface):
 
         while not url_queue.empty():
             current_url = url_queue.get()
-            current_raw = cache.get_url(current_url)
+            current_raw = cache.get_from_cache(current_url)
 
             if current_raw is None:
                 cache.put_in_cache("https:\\test.de", "Testing, testing")
 
             # container for future jobs
             additional_urls = list()
-
-            # TODO parse line by line - in this case, only extract urls
 
             # Enqueue new jobs
             for new_url in additional_urls:

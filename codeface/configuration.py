@@ -40,10 +40,13 @@ class Configuration(Mapping):
             'idServiceHostname', 'idServicePort')
     GLOBAL_OPTIONAL_KEYS = ('dbport',)
     PROJECT_KEYS = ('project', 'repo', 'tagging', 'revisions', 'rcs')
+    # TODO remove keys from the java bugextractor
     OPTIONAL_KEYS = ('description', 'ml', 'mailinglists', 'sleepTime',
                      'proxyHost', 'proxyPort', 'bugsProjectName',
                      'productAsProject', 'issueTrackerType',
-                     'issueTrackerURL', 'understand', 'sloccount')
+                     'issueTrackerURL', 'understand', 'sloccount',
+                     'bug_project_name', 'bugtracker_type', 'bugtracker_url',
+                     'project_id')
     ALL_KEYS = set(GLOBAL_KEYS + GLOBAL_OPTIONAL_KEYS + PROJECT_KEYS +
                    OPTIONAL_KEYS)
 

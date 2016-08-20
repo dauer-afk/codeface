@@ -13,6 +13,4 @@
 #
 # Copyright 2013 by Siemens AG, Johannes Ebke <johannes.ebke.ext@siemens.com>
 # All Rights Reserved.
-"""
-Bugtracker crawler and posting the crawled data to the codeface DB
-"""
+"""Crawls a remote bug tracker and posts the results to the database"""

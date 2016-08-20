@@ -42,7 +42,7 @@ class DBManager:
     def __init__(self, conf):
         try:
             self.con = None
-            self.con = mdb.Connection(host=conf["dbhost"],
+            self.con = mdb.Connection(host="127.0.0.1",
                                       port=conf["dbport"],
                                       user=conf["dbuser"],
                                       passwd=conf["dbpwd"],
@@ -359,6 +359,166 @@ class DBManager:
         # now we are in a well-defined state.
         # Return the ids of the release ranges we have to process
         return new_ranges_to_process
+
+    def insert_bug(self, bug_data):
+        """Insert bug into database from parser.
+
+        Args:
+            bug_data (tuple): Contains the all the fileds required
+
+        Returns int: contents of the id field in the issue table. Unique
+                     identifier for the bug in the database
+
+        """
+        database_id = 0
+        sql_statement = "INSERT INTO issue (bugId, creationDate, modifiedDate,"\
+                        " url, resolution, severity, priority, createdBy," \
+                        " assignedTo, projectId, status, subComponent," \
+                        " subSubComponent) VALUES (%s, %s, %s, %s, %s, %s, " \
+                        "%s, %s, %s, %s, %s, %s, %s)"
+        try:
+            self.doExecCommit(sql_statement, bug_data)
+        except mdb.MySQLError:
+            log.debug("Bug {nr} already in database".format(nr=bug_data[0]))
+        except UnicodeEncodeError:
+            log.critical("Unicode encoding error, skipping")
+            return 0
+
+        # Retrieve the database unique id for the bug
+        sql_statement = "SELECT id FROM codeface.issue WHERE bugId="+\
+                        str(bug_data[0])
+        self.doExec(sql_statement)
+
+        # Hack for filtering the actual databaseID from the tuple
+        ((database_id,),) = self.doFetchAll()
+        return int(database_id)
+
+    def insert_dependencies(self, target_table, dependency_data):
+        """Inserts the data for issue_dependencies and issue_duplicates.
+
+        Args:
+            target_table (str): Must be either issue_dependencies or
+                                issue_duplicates
+            dependency_data (list): Contains the values for the dependencies
+
+        Returns:
+
+        """
+        if not (target_table == "issue_dependencies" or target_table ==
+                "issue_duplicates"):
+            log.critical("Attempted to insert dependencies into invalid table")
+            raise Exception("Invalid target table")
+
+        log.debug("Inserting into {t}".format(t=target_table))
+        if target_table == "issue_dependencies":
+            sql_statement = "INSERT INTO  issue_dependencies (originalIssueId,"\
+                        " dependentIssueId) VALUES (%s, %s)"
+        elif target_table == "issue_duplicates":
+            sql_statement = "INSERT INTO  issue_duplicates (originalBugId," \
+                            " duplicateBugId) VALUES (%s, %s)"
+        try:
+            self.doExecCommit(sql_statement, dependency_data)
+        except mdb.MySQLError:
+            log.critical("Attempted to insert duplicate dependency")
+
+        return
+
+    def populate_cc_list(self, cc_list):
+        """Populate the cc list from the parser data.
+
+        Args:
+            cc_list (list): contains a tuple with the bug id and the person id
+
+        Returns:
+
+        """
+        sql_statement = "INSERT INTO cc_list (issueId, who) VALUES (%s, %s)"
+        try:
+            self.doExecCommit(sql_statement, cc_list)
+        except mdb.MySQLError:
+            log.debug("Issue {nr} cc list already populated".format(nr=cc_list[0]))
+
+
+    def insert_product(self, is_product, data):
+        """ Fills the product entries in the issue table
+
+        Args:
+            is_product (bool):
+            data (tuple): Contains the strings with the names of product and/or
+            project
+
+        Returns:
+
+        """
+        if is_product:
+            sql_statement = "UPDATE issue SET subComponent=" + data[1] +\
+                            " WHERE id=" + str(data[0])
+        else:
+            sql_statement = "UPDATE issue SET subComponent=" + data[1] +\
+                            ", subSubComponent=" + data[2] + \
+                            " WHERE id=" + str(data[0])
+        try:
+            self.doExecCommit(sql_statement)
+        except mdb.MySQLError:
+            log.critical("Error when inserting components")
+
+        return
+
+    def insert_history(self, history_data):
+        """Fills the issue_history table.
+
+        Args:
+            history_data (list): List containing the tuples with the history
+            data
+
+        Returns:
+
+        """
+        sql_statement = "INSERT INTO issue_history(changeDate, field," \
+                        " oldValue, newValue, who, issueId) VALUES " \
+                        "(%s, %s, %s, %s, %s, %s)"
+        # This causes a execCommit for each tuple in the list
+        try:
+            self.doExecCommit(sql_statement, history_data)
+        except UnicodeEncodeError:
+            log.critical("Encoding Error")
+            pass
+        return
+
+    def insert_comments(self, com_data):
+        """Inserts the comments/communication
+
+        Args:
+            com_data (list): contains tuples of the communication data
+
+        Returns:
+
+        """
+        sql_statement = "INSERT INTO issue_comment (who, fk_issueId, " \
+                        "commentDate) VALUES (%s, %s, %s)"
+
+        # This causes a execCommit for each of the tuples in the list
+        self.doExecCommit(sql_statement, com_data)
+        return
+
+    def reset_bugtracker_database(self):
+        """This will truncate all tables related to the bugtracker analysis.
+
+        Note:
+            Those are issue, issue_history, issue_duplicates, issue_dependencies
+            cc_list and issue_comment
+        Warnings: Be very careful when using it. It will destroy eventual links
+                  to the tables!
+        """
+        sql_statement= "SET FOREIGN_KEY_CHECKS = 0;" \
+                       "TRUNCATE codeface.issue;" \
+                       "TRUNCATE codeface.issue_dependencies;" \
+                       "TRUNCATE codeface.issue_duplicates;" \
+                       "TRUNCATE codeface.issue_history;" \
+                       "TRUNCATE codeface.cc_list;" \
+                       "TRUNCATE codeface.issue_comment;" \
+                       "SET FOREIGN_KEY_CHECKS = 1;"
+        self.doExec(sql_statement)
 
 def tstamp_to_sql(tstamp):
     """Convert a Unix timestamp into an SQL compatible DateTime string"""
